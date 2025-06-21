@@ -1,6 +1,8 @@
 package main
 
 import (
+	"database/sql"
+	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -10,6 +12,7 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type Environment string
@@ -63,6 +66,17 @@ func (c *Config) IsProduction() bool {
 	return c.Environment == Production
 }
 
+func connectDatabase() (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", "dishdex.db")
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
 type handler struct {
 	config *Config
 }
@@ -88,6 +102,13 @@ func render(c echo.Context, component templ.Component) error {
 
 func main() {
 	cfg := loadConfig()
+
+	db, err := connectDatabase()
+	if err != nil {
+		log.Fatal("Failed to connect to db ", err)
+	}
+	defer db.Close()
+
 	e := echo.New()
 
 	// Middleware

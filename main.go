@@ -2,32 +2,70 @@ package main
 
 import (
 	"net/http"
+	"os"
+	"sync"
 
 	"github.com/a-h/templ"
 	"github.com/camdenwithrow/dishdex/templates"
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
-const PORT = "4444"
+type Environment string
 
-func main() {
-	e := echo.New()
+const (
+	Development Environment = "dev"
+	Production  Environment = "prod"
+)
 
-	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.CORS())
-
-	// Routes
-	h := handler{}
-	e.GET("/", h.Home())
-	e.GET("/health", h.Health())
-
-	e.Logger.Fatal(e.Start(":" + PORT))
+type Config struct {
+	Environment Environment
+	Port        string
 }
 
-type handler struct{}
+var (
+	config *Config
+	once   sync.Once
+)
+
+func loadConfig() *Config {
+	once.Do(func() {
+		env := getEnvironment()
+		config = &Config{
+			Environment: env,
+			Port:        getEnv("PORT", "4444"),
+		}
+	})
+	return config
+}
+
+func getEnvironment() Environment {
+	env := os.Getenv("ENVIRONMENT")
+	if env == "producation" {
+		return Production
+	}
+	return Development
+}
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+func (c *Config) IsDevelopment() bool {
+	return c.Environment == Development
+}
+
+func (c *Config) IsProduction() bool {
+	return c.Environment == Production
+}
+
+type handler struct {
+	config *Config
+}
 
 func (handler) Home() echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -37,12 +75,31 @@ func (handler) Home() echo.HandlerFunc {
 
 func (handler) Health() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{
-			"status": "healthy",
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status":      "healthy",
+			"environment": config.Environment,
 		})
 	}
 }
 
 func render(c echo.Context, component templ.Component) error {
 	return component.Render(c.Request().Context(), c.Response().Writer)
+}
+
+func main() {
+	cfg := loadConfig()
+	e := echo.New()
+
+	// Middleware
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	e.Use(middleware.CORS())
+
+	// Routes
+	h := handler{config: cfg}
+	e.GET("/", h.Home())
+	e.GET("/health", h.Health())
+
+	// Start Server
+	e.Logger.Fatal(e.Start(":" + cfg.Port))
 }

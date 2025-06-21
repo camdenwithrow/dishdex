@@ -3,6 +3,8 @@ package main
 import (
 	"net/http"
 
+	"github.com/a-h/templ"
+	"github.com/camdenwithrow/dishdex/templates"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -19,7 +21,7 @@ func main() {
 
 	// Routes
 	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello :)")
+		return render(c, templates.Home())
 	})
 
 	e.GET("/health", func(c echo.Context) error {
@@ -29,4 +31,8 @@ func main() {
 	})
 
 	e.Logger.Fatal(e.Start(":" + PORT))
+}
+
+func render(c echo.Context, component templ.Component) error {
+	return component.Render(c.Request().Context(), c.Response().Writer)
 }

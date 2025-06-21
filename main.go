@@ -20,17 +20,27 @@ func main() {
 	e.Use(middleware.CORS())
 
 	// Routes
-	e.GET("/", func(c echo.Context) error {
-		return render(c, templates.Home())
-	})
+	h := handler{}
+	e.GET("/", h.Home())
+	e.GET("/health", h.Health())
 
-	e.GET("/health", func(c echo.Context) error {
+	e.Logger.Fatal(e.Start(":" + PORT))
+}
+
+type handler struct{}
+
+func (handler) Home() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		return render(c, templates.Home())
+	}
+}
+
+func (handler) Health() echo.HandlerFunc {
+	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{
 			"status": "healthy",
 		})
-	})
-
-	e.Logger.Fatal(e.Start(":" + PORT))
+	}
 }
 
 func render(c echo.Context, component templ.Component) error {

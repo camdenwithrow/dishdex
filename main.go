@@ -72,18 +72,18 @@ func initDB() (*sql.DB, error) {
 		return nil, err
 	}
 
-	createTableSQL := `
+	createRecipesTable := `
 	CREATE TABLE IF NOT EXISTS recipes (
 		id TEXT PRIMARY KEY,
 		title TEXT NOT NULL,
-		description TEXT,
-		cook_time TEXT,
+		description TEXT NULL,
+		cook_time TEXT NULL,
 		ingredients TEXT,
 		instructions TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 	`
-	_, err = db.Exec(createTableSQL)
+	_, err = db.Exec(createRecipesTable)
 	if err != nil {
 		return nil, err
 	}
@@ -115,13 +115,13 @@ func (h *handler) createRecipe(c echo.Context) error {
 	ingredients := c.FormValue("ingredients")
 	instructions := c.FormValue("instructions")
 
-	if title == "" || description == "" || cookTime == "" || ingredients == "" || instructions == "" {
+	if title == "" || ingredients == "" || instructions == "" {
 		return c.String(http.StatusBadRequest, "Missing required fields")
 	}
 
 	id := uuid.New().String()
 	_, err := h.db.Exec(`INSERT INTO recipes (id, title, description, cook_time, ingredients, instructions) VALUES (?, ?, ?, ?, ?, ?)`,
-		id, title, description, cookTime, ingredients, instructions)
+		id, title, nullIfEmpty(description), nullIfEmpty(cookTime), ingredients, instructions)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to create recipe")
 	}
@@ -141,11 +141,15 @@ func (h *handler) listRecipes(c echo.Context) error {
 	defer rows.Close()
 
 	recipes := []Recipe{}
+
 	for rows.Next() {
 		var r Recipe
-		if err := rows.Scan(&r.ID, &r.Title, &r.Description, &r.CookTime, &r.Ingredients, &r.Instructions, &r.CreatedAt); err != nil {
+		var description, cookTime sql.NullString
+		if err := rows.Scan(&r.ID, &r.Title, &description, &cookTime, &r.Ingredients, &r.Instructions, &r.CreatedAt); err != nil {
 			return c.String(http.StatusInternalServerError, "Failed to parse recipe")
 		}
+		r.Description = nullStringToString(description)
+		r.CookTime = nullStringToString(cookTime)
 		recipes = append(recipes, r)
 	}
 
@@ -161,22 +165,26 @@ func (h *handler) listRecipes(c echo.Context) error {
 	}
 
 	if isHtmxReq(c) {
-		return render(c, ui.RecipesList(tRecipes))
+		return render(c, ui.RecipesList(tRecipes, []string{}, []string{}))
 	}
 
-	return render(c, ui.Base(ui.RecipesList(tRecipes), true))
+	return render(c, ui.Base(ui.RecipesList(tRecipes, []string{}, []string{}), true))
 }
 
 func (h *handler) getRecipe(c echo.Context) error {
 	id := c.Param("id")
 	var r Recipe
+	var description, cookTime sql.NullString
 	err := h.db.QueryRow(`SELECT id, title, description, cook_time, ingredients, instructions, created_at FROM recipes WHERE id = ?`, id).
-		Scan(&r.ID, &r.Title, &r.Description, &r.CookTime, &r.Ingredients, &r.Instructions, &r.CreatedAt)
+		Scan(&r.ID, &r.Title, &description, &cookTime, &r.Ingredients, &r.Instructions, &r.CreatedAt)
 	if err == sql.ErrNoRows {
 		return c.String(http.StatusNotFound, "Recipe not found")
 	} else if err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to fetch recipe")
 	}
+
+	r.Description = nullStringToString(description)
+	r.CookTime = nullStringToString(cookTime)
 
 	recipeDetail := ui.RecipeDetail{
 		ID:           r.ID,
@@ -202,12 +210,12 @@ func (h *handler) updateRecipe(c echo.Context) error {
 	ingredients := c.FormValue("ingredients")
 	instructions := c.FormValue("instructions")
 
-	if title == "" || description == "" || cookTime == "" || ingredients == "" || instructions == "" {
+	if title == "" || ingredients == "" || instructions == "" {
 		return c.String(http.StatusBadRequest, "Missing required fields")
 	}
 
 	_, err := h.db.Exec(`UPDATE recipes SET title=?, description=?, cook_time=?, ingredients=?, instructions=? WHERE id=?`,
-		title, description, cookTime, ingredients, instructions, id)
+		title, nullIfEmpty(description), nullIfEmpty(cookTime), ingredients, instructions, id)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to update recipe")
 	}
@@ -240,35 +248,28 @@ func (h *handler) deleteRecipe(c echo.Context) error {
 
 func (h *handler) searchRecipes(c echo.Context) error {
 	query := c.FormValue("search")
+
 	if query == "" {
 		return h.listRecipes(c)
 	}
 
-	// Use prepared statement for better security
-	stmt, err := h.db.Prepare(`SELECT id, title, description, cook_time, ingredients, instructions, created_at 
-		FROM recipes 
-		WHERE title LIKE ? OR description LIKE ? 
-		ORDER BY created_at DESC`)
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to prepare search statement")
-	}
-	defer stmt.Close()
-
-	// Escape SQL wildcard characters
 	searchPattern := "%" + strings.ReplaceAll(strings.ReplaceAll(query, "%", "\\%"), "_", "\\_") + "%"
-
-	rows, err := stmt.Query(searchPattern, searchPattern)
+	rows, err := h.db.Query(`SELECT id, title, description, cook_time, ingredients, instructions, created_at FROM recipes WHERE title LIKE ? OR description LIKE ? ORDER BY created_at DESC`, searchPattern, searchPattern)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to search recipes")
 	}
 	defer rows.Close()
 
 	recipes := []Recipe{}
+
 	for rows.Next() {
 		var r Recipe
-		if err := rows.Scan(&r.ID, &r.Title, &r.Description, &r.CookTime, &r.Ingredients, &r.Instructions, &r.CreatedAt); err != nil {
+		var description, cookTime sql.NullString
+		if err := rows.Scan(&r.ID, &r.Title, &description, &cookTime, &r.Ingredients, &r.Instructions, &r.CreatedAt); err != nil {
 			return c.String(http.StatusInternalServerError, "Failed to parse recipe")
 		}
+		r.Description = nullStringToString(description)
+		r.CookTime = nullStringToString(cookTime)
 		recipes = append(recipes, r)
 	}
 
@@ -284,10 +285,10 @@ func (h *handler) searchRecipes(c echo.Context) error {
 	}
 
 	if isHtmxReq(c) {
-		return render(c, ui.RecipesList(tRecipes))
+		return render(c, ui.RecipesList(tRecipes, []string{}, []string{}))
 	}
 
-	return render(c, ui.Base(ui.RecipesList(tRecipes), true))
+	return render(c, ui.Base(ui.RecipesList(tRecipes, []string{}, []string{}), true))
 }
 
 func (h *handler) showAddRecipeForm(c echo.Context) error {
@@ -300,13 +301,17 @@ func (h *handler) showAddRecipeForm(c echo.Context) error {
 func (h *handler) showEditRecipeForm(c echo.Context) error {
 	id := c.Param("id")
 	var r Recipe
+	var description, cookTime sql.NullString
 	err := h.db.QueryRow(`SELECT id, title, description, cook_time, ingredients, instructions, created_at FROM recipes WHERE id = ?`, id).
-		Scan(&r.ID, &r.Title, &r.Description, &r.CookTime, &r.Ingredients, &r.Instructions, &r.CreatedAt)
+		Scan(&r.ID, &r.Title, &description, &cookTime, &r.Ingredients, &r.Instructions, &r.CreatedAt)
 	if err == sql.ErrNoRows {
 		return c.String(http.StatusNotFound, "Recipe not found")
 	} else if err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to fetch recipe")
 	}
+
+	r.Description = nullStringToString(description)
+	r.CookTime = nullStringToString(cookTime)
 
 	recipeDetail := ui.RecipeDetail{
 		ID:           r.ID,
@@ -326,4 +331,18 @@ func (h *handler) showEditRecipeForm(c echo.Context) error {
 
 func isHtmxReq(c echo.Context) bool {
 	return c.Request().Header.Get("HX-Request") == "true"
+}
+
+func nullIfEmpty(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	return s
+}
+
+func nullStringToString(ns sql.NullString) string {
+	if ns.Valid {
+		return ns.String
+	}
+	return ""
 }

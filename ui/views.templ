@@ -128,7 +128,11 @@ type Recipe struct {
 	CookTime    string
 }
 
-templ RecipesList(recipes []Recipe) {
+templ RecipesList(recipes []Recipe, tags []string, selectedTags []string) {
+	<div class="mb-4">
+		<h2 class="text-xl font-bold">My Recipes</h2>
+	</div>
+
 	if len(recipes) == 0 {
 		<div class="text-center py-12">
 			<div class="mb-4 text-border">
@@ -136,7 +140,7 @@ templ RecipesList(recipes []Recipe) {
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 				</svg>
 			</div>
-			<p class="mb-4 text-secondary">No recipes yet.</p>
+			<p class="mb-4 text-secondary">No recipes found.</p>
 			<a href="/recipes/new" class="inline-flex items-center px-4 py-2 btn-primary text-sm font-medium rounded-md">
 				Add Recipe
 			</a>
@@ -162,18 +166,21 @@ templ RecipeCard(recipe Recipe) {
 			<div class="p-6">
 				<h3 class="text-xl font-semibold mb-2 text-text-primary">{recipe.Title}</h3>
 				<p class="text-sm mb-3 line-clamp-2 text-secondary">{recipe.Description}</p>
-				<div class="flex items-center text-sm text-accent">
-					<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-					</svg>
-					{recipe.CookTime}
-				</div>
+				if recipe.CookTime != "" {
+					<div class="flex items-center text-sm text-accent">
+						<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+						</svg>
+						{recipe.CookTime}
+					</div>
+				}
 			</div>
 		</a>
 	</div>
 }
 
 templ AddRecipe() {
+	@InstructionSteps()
 	<div class="max-w-2xl mx-auto">
 		<div class="mt-4 mb-6">
 			<h1 class="text-3xl font-bold text-primary mb-2">Add New Recipe</h1>
@@ -204,7 +211,6 @@ templ AddRecipe() {
 					id="description" 
 					name="description" 
 					rows="2" 
-					required 
 					class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none"
 					placeholder="Brief description of your recipe"
 				></textarea>
@@ -217,7 +223,6 @@ templ AddRecipe() {
 						type="text" 
 						id="cookTime" 
 						name="cookTime" 
-						required 
 						class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary"
 						placeholder="e.g., 30 minutes"
 					/>
@@ -249,14 +254,8 @@ templ AddRecipe() {
 			
 			<div class="mb-3">
 				<label for="instructions" class="block text-sm font-medium text-primary mb-1">Instructions</label>
-				<textarea 
-					id="instructions" 
-					name="instructions" 
-					rows="4" 
-					required 
-					class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none"
-					placeholder="Step-by-step instructions:&#10;1. Preheat oven to 350°F&#10;2. Mix ingredients in a bowl&#10;3. Bake for 30 minutes"
-				></textarea>
+				<div id="instructions-steps"></div>
+				<input type="hidden" id="instructions" name="instructions" required>
 			</div>
 			
 			<div class="flex gap-4 pt-3">
@@ -275,6 +274,178 @@ templ AddRecipe() {
 			</div>
 		</form>
 	</div>
+}
+
+templ EditRecipe(recipe RecipeDetail) {
+	@InstructionSteps()
+	<div class="max-w-2xl mx-auto">
+		<div class="mt-4 mb-6">
+			<h1 class="text-3xl font-bold text-primary mb-2">Edit Recipe</h1>
+			<p class="text-secondary">Update your recipe details below</p>
+		</div>
+		<form 
+			action={ "/recipes/" + recipe.ID }
+			method="POST"
+			hx-put={ "/recipes/" + recipe.ID }
+			hx-target="#main-content"
+			hx-swap="innerHTML"
+			class="space-y-6"
+		>
+			<input type="hidden" name="_method" value="PUT" />
+			<div class="mb-3">
+				<label for="title" class="block text-sm font-medium text-primary mb-1">Recipe Title</label>
+				<input 
+					type="text" 
+					id="title" 
+					name="title" 
+					required 
+					value={recipe.Title}
+					class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary"
+					placeholder="Enter recipe title"
+				/>
+			</div>
+			<div class="mb-3">
+				<label for="description" class="block text-sm font-medium text-primary mb-1">Description</label>
+				<textarea 
+					id="description" 
+					name="description" 
+					rows="2" 
+					class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none"
+					placeholder="Brief description of your recipe"
+				>{recipe.Description}</textarea>
+			</div>
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3">
+				<div>
+					<label for="cookTime" class="block text-sm font-medium text-primary mb-1">Cook Time</label>
+					<input 
+						type="text" 
+						id="cookTime" 
+						name="cookTime" 
+						value={recipe.CookTime}
+						class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary"
+						placeholder="e.g., 30 minutes"
+					/>
+				</div>
+				<div>
+					<label for="servings" class="block text-sm font-medium text-primary mb-1">Servings</label>
+					<input 
+						type="number" 
+						id="servings" 
+						name="servings" 
+						min="1" 
+						class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary"
+						placeholder="4"
+					/>
+				</div>
+			</div>
+			<div class="mb-3">
+				<label for="ingredients" class="block text-sm font-medium text-primary mb-1">Ingredients</label>
+				<textarea 
+					id="ingredients" 
+					name="ingredients" 
+					rows="4" 
+					required 
+					class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none"
+					placeholder="List ingredients, one per line:&#10;2 cups flour&#10;1 cup sugar&#10;3 eggs"
+				>{recipe.Ingredients}</textarea>
+			</div>
+			<div class="mb-3">
+				<label for="instructions" class="block text-sm font-medium text-primary mb-1">Instructions</label>
+				<div id="instructions-steps"></div>
+				<input type="hidden" id="instructions" name="instructions" value={recipe.Instructions} required>
+			</div>
+			<div class="flex gap-4 pt-3">
+				<a 
+					href={ "/recipes/" + recipe.ID }
+					class="flex-1 border border-border cursor-pointer text-primary px-7 py-3 rounded-lg font-medium transition-colors duration-200 text-center hover:bg-card focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
+				>
+					Cancel
+				</a>
+				<button 
+					type="submit" 
+					class="flex-1 bg-accent cursor-pointer text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+				>
+					Update Recipe
+				</button>
+			</div>
+		</form>
+	</div>
+} 
+
+templ InstructionSteps() {
+	<script>
+		document.addEventListener('DOMContentLoaded', initializeInstructionSteps)
+		document.body.addEventListener('htmx:afterSwap', initializeInstructionSteps)
+		function initializeInstructionSteps() {
+			// Only run on AddRecipe or EditRecipe pages by checking for the form
+			const stepsContainer = document.getElementById('instructions-steps');
+			const hiddenInput = document.getElementById('instructions');
+			if (!stepsContainer || !hiddenInput) return;
+
+			let steps = [];
+			if (hiddenInput && hiddenInput.value.trim() !== '') {
+				steps = hiddenInput.value.split('\n');
+			} else {
+				steps = [''];
+			}
+
+			function renderSteps() {
+				stepsContainer.innerHTML = '';
+				steps.forEach((step, idx) => {
+					const wrapper = document.createElement('div');
+					wrapper.className = 'flex items-center mb-2';
+
+					const number = document.createElement('div');
+					number.className = 'w-6 h-6 pb-0.5 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium mr-3 flex-shrink-0 leading-none';
+					number.textContent = idx + 1;
+
+					const input = document.createElement('input');
+					input.type = 'text';
+					input.className = 'flex-1 px-3 py-2 border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary bg-card text-primary placeholder-secondary';
+					input.placeholder = `Step ${idx + 1}`;
+					input.value = step;
+					input.dataset.idx = idx;
+
+					input.addEventListener('keydown', function(e) {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							if (idx === steps.length - 1 && input.value.trim() !== '') {
+								steps.push('');
+								renderSteps();
+								setTimeout(() => {
+									stepsContainer.querySelectorAll('input')[idx + 1].focus();
+								}, 0);
+							}
+						}
+						// Optional: handle "Backspace" to remove empty step
+						if (e.key === 'Backspace' && input.value === '' && steps.length > 1) {
+							steps.splice(idx, 1);
+							renderSteps();
+							setTimeout(() => {
+								stepsContainer.querySelectorAll('input')[Math.max(0, idx - 1)].focus();
+							}, 0);
+						}
+					});
+
+					input.addEventListener('input', function(e) {
+						steps[idx] = input.value;
+						updateHiddenInput();
+					});
+
+					wrapper.appendChild(number);
+					wrapper.appendChild(input);
+					stepsContainer.appendChild(wrapper);
+				});
+				updateHiddenInput();
+			}
+
+			function updateHiddenInput() {
+				hiddenInput.value = steps.filter(s => s.trim() !== '').join('\n');
+			}
+
+			renderSteps();
+		};
+	</script>
 }
 
 type RecipeDetail struct {
@@ -325,17 +496,20 @@ templ ShowRecipe(recipe RecipeDetail) {
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
 						</svg>
+						Delete
 					</button>
 				</div>
 			</div>
 			<h1 class="text-4xl font-bold text-primary mb-2">{recipe.Title}</h1>
 			<p class="text-xl text-secondary mb-4">{recipe.Description}</p>
-			<div class="flex items-center text-accent">
-				<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-				</svg>
-				<span class="font-medium">{recipe.CookTime}</span>
-			</div>
+			if recipe.CookTime != "" {
+				<div class="flex items-center text-accent">
+					<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+					</svg>
+					<span class="font-medium">{recipe.CookTime}</span>
+				</div>
+			}
 		</div>
 
 		<!-- Recipe Content -->
@@ -372,7 +546,7 @@ templ ShowRecipe(recipe RecipeDetail) {
 					for i, instruction := range strings.Split(recipe.Instructions, "\n") {
 						if strings.TrimSpace(instruction) != "" {
 							<div class="flex items-start">
-								<div class="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium mr-3 flex-shrink-0">
+								<div class="w-6 h-6 pb-0.5 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium mr-3 flex-shrink-0">
 									{i + 1}
 								</div>
 								<p class="text-primary">{instruction}</p>
@@ -440,106 +614,3 @@ templ ErrorMessage(message string) {
 		</div>
 	</div>
 }
-
-templ EditRecipe(recipe RecipeDetail) {
-	<div class="max-w-2xl mx-auto">
-		<div class="mt-4 mb-6">
-			<h1 class="text-3xl font-bold text-primary mb-2">Edit Recipe</h1>
-			<p class="text-secondary">Update your recipe details below</p>
-		</div>
-		<form 
-			action={ "/recipes/" + recipe.ID }
-			method="POST"
-			hx-put={ "/recipes/" + recipe.ID }
-			hx-target="#main-content"
-			hx-swap="innerHTML"
-			class="space-y-6"
-		>
-			<input type="hidden" name="_method" value="PUT" />
-			<div class="mb-3">
-				<label for="title" class="block text-sm font-medium text-primary mb-1">Recipe Title</label>
-				<input 
-					type="text" 
-					id="title" 
-					name="title" 
-					required 
-					value={recipe.Title}
-					class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary"
-					placeholder="Enter recipe title"
-				/>
-			</div>
-			<div class="mb-3">
-				<label for="description" class="block text-sm font-medium text-primary mb-1">Description</label>
-				<textarea 
-					id="description" 
-					name="description" 
-					rows="2" 
-					required 
-					class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none"
-					placeholder="Brief description of your recipe"
-				>{recipe.Description}</textarea>
-			</div>
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3">
-				<div>
-					<label for="cookTime" class="block text-sm font-medium text-primary mb-1">Cook Time</label>
-					<input 
-						type="text" 
-						id="cookTime" 
-						name="cookTime" 
-						required 
-						value={recipe.CookTime}
-						class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary"
-						placeholder="e.g., 30 minutes"
-					/>
-				</div>
-				<div>
-					<label for="servings" class="block text-sm font-medium text-primary mb-1">Servings</label>
-					<input 
-						type="number" 
-						id="servings" 
-						name="servings" 
-						min="1" 
-						class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary"
-						placeholder="4"
-					/>
-				</div>
-			</div>
-			<div class="mb-3">
-				<label for="ingredients" class="block text-sm font-medium text-primary mb-1">Ingredients</label>
-				<textarea 
-					id="ingredients" 
-					name="ingredients" 
-					rows="4" 
-					required 
-					class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none"
-					placeholder="List ingredients, one per line:&#10;2 cups flour&#10;1 cup sugar&#10;3 eggs"
-				>{recipe.Ingredients}</textarea>
-			</div>
-			<div class="mb-3">
-				<label for="instructions" class="block text-sm font-medium text-primary mb-1">Instructions</label>
-				<textarea 
-					id="instructions" 
-					name="instructions" 
-					rows="4" 
-					required 
-					class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none"
-					placeholder="Step-by-step instructions:&#10;1. Preheat oven to 350°F&#10;2. Mix ingredients in a bowl&#10;3. Bake for 30 minutes"
-				>{recipe.Instructions}</textarea>
-			</div>
-			<div class="flex gap-4 pt-3">
-				<a 
-					href={ "/recipes/" + recipe.ID }
-					class="flex-1 border border-border cursor-pointer text-primary px-7 py-3 rounded-lg font-medium transition-colors duration-200 text-center hover:bg-card focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
-				>
-					Cancel
-				</a>
-				<button 
-					type="submit" 
-					class="flex-1 bg-accent cursor-pointer text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-				>
-					Update Recipe
-				</button>
-			</div>
-		</form>
-	</div>
-} 

@@ -1,16 +1,23 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/a-h/templ"
 	"github.com/camdenwithrow/dishdex/ui"
 	"github.com/google/uuid"
+	"github.com/gorilla/sessions"
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/providers/github"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -26,8 +33,9 @@ type Recipe struct {
 	CreatedAt    string `json:"created_at"`
 }
 
-type handler struct {
-	db *sql.DB
+type Handler struct {
+	db    *sql.DB
+	store *sessions.CookieStore
 }
 
 func main() {
@@ -36,8 +44,6 @@ func main() {
 		log.Fatal("Failed to connect to db ", err)
 	}
 	defer db.Close()
-
-	handler := &handler{db: db}
 
 	e := echo.New()
 
@@ -48,6 +54,35 @@ func main() {
 
 	e.Static("/static", "ui/static")
 
+	// --- Auth Setup ---
+	key := os.Getenv("SESSION_SECRET")
+	if key == "" {
+		key = "dev_secret_key" // fallback for dev
+	}
+	store := sessions.NewCookieStore([]byte(key))
+	store.MaxAge(86400 * 30)
+	store.Options.Path = "/"
+	store.Options.HttpOnly = true
+	store.Options.Secure = false // set true in prod
+	gothic.Store = store
+
+	handler := &Handler{db: db, store: store}
+
+	goth.UseProviders(
+		github.New(
+			os.Getenv("GITHUB_CLIENT_ID"),
+			os.Getenv("GITHUB_CLIENT_SECRET"),
+			"http://localhost:"+PORT+"/auth/github/callback",
+		),
+	)
+
+	// --- Helper Middleware to set login state ---
+	e.Use(handler.authSessionMiddleware)
+
+	// --- Auth Routes ---
+	e.GET("/auth/:provider", handler.beginAuth)
+	e.GET("/auth/:provider/callback", handler.authCallback)
+	e.POST("/logout", handler.logout)
 	// Routes
 	e.GET("/", home)
 	e.GET("/health", health)
@@ -88,6 +123,19 @@ func initDB() (*sql.DB, error) {
 		return nil, err
 	}
 
+	createUsersTable := `
+	CREATE TABLE IF NOT EXISTS users (
+		id TEXT PRIMARY KEY,
+		name TEXT,
+		email TEXT,
+		avatar_url TEXT
+	);
+	`
+	_, err = db.Exec(createUsersTable)
+	if err != nil {
+		return nil, err
+	}
+
 	return db, nil
 }
 
@@ -102,13 +150,72 @@ func render(c echo.Context, component templ.Component) error {
 }
 
 func home(c echo.Context) error {
+	loggedIn, _ := c.Get("loggedIn").(bool)
+	if loggedIn {
+		return c.Redirect(http.StatusSeeOther, "/recipes")
+	}
 	if isHtmxReq(c) {
 		return render(c, ui.Home())
 	}
-	return render(c, ui.Base(ui.Home(), false))
+	return render(c, ui.Base(ui.Home(), false, nil))
 }
 
-func (h *handler) createRecipe(c echo.Context) error {
+func (h *Handler) authSessionMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		sess, _ := h.store.Get(c.Request(), "auth-session")
+		if _, ok := sess.Values["user_id"]; ok {
+			c.Set("loggedIn", true)
+			c.Set("userName", sess.Values["name"])
+		} else {
+			c.Set("loggedIn", false)
+		}
+		return next(c)
+	}
+}
+
+func (h *Handler) beginAuth(c echo.Context) error {
+	provider := c.Param("provider")
+	ctx := context.WithValue(c.Request().Context(), gothic.ProviderParamKey, provider)
+	r := c.Request().WithContext(ctx)
+	gothic.BeginAuthHandler(c.Response().Writer, r)
+	return nil
+}
+
+func (h *Handler) authCallback(c echo.Context) error {
+	user, err := gothic.CompleteUserAuth(c.Response().Writer, c.Request())
+	if err != nil {
+		return c.Redirect(http.StatusTemporaryRedirect, "/")
+	}
+	// Use NickName if Name is empty
+	name := user.Name
+	if name == "" {
+		name = user.NickName
+	}
+	// Save user info in DB (upsert)
+	_, err = h.db.Exec(`INSERT INTO users (id, name, email, avatar_url) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, email=excluded.email, avatar_url=excluded.avatar_url`,
+		user.UserID, name, user.Email, user.AvatarURL)
+	if err != nil {
+		log.Printf("Failed to upsert user: %v", err)
+	}
+	// Save user info in session
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	sess.Values["user_id"] = user.UserID
+	sess.Values["name"] = name
+	sess.Values["email"] = user.Email
+	sess.Values["avatar_url"] = user.AvatarURL
+	sess.Save(c.Request(), c.Response().Writer)
+	return c.Redirect(http.StatusSeeOther, "/recipes")
+}
+
+func (h *Handler) logout(c echo.Context) error {
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	sess.Options.MaxAge = -1
+	sess.Save(c.Request(), c.Response().Writer)
+	gothic.Logout(c.Response().Writer, c.Request())
+	return c.Redirect(http.StatusSeeOther, "/")
+}
+
+func (h *Handler) createRecipe(c echo.Context) error {
 	title := c.FormValue("title")
 	description := c.FormValue("description")
 	cookTime := c.FormValue("cookTime")
@@ -133,7 +240,7 @@ func (h *handler) createRecipe(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/recipes")
 }
 
-func (h *handler) listRecipes(c echo.Context) error {
+func (h *Handler) listRecipes(c echo.Context) error {
 	rows, err := h.db.Query(`SELECT id, title, description, cook_time, ingredients, instructions, created_at FROM recipes ORDER BY created_at DESC`)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to fetch recipes")
@@ -164,14 +271,21 @@ func (h *handler) listRecipes(c echo.Context) error {
 		}
 	}
 
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	user := &ui.User{
+		ID:        toString(sess.Values["user_id"]),
+		Name:      toString(sess.Values["name"]),
+		Email:     toString(sess.Values["email"]),
+		AvatarURL: toString(sess.Values["avatar_url"]),
+	}
+	loggedIn := user.Name != ""
 	if isHtmxReq(c) {
 		return render(c, ui.RecipesList(tRecipes, []string{}, []string{}))
 	}
-
-	return render(c, ui.Base(ui.RecipesList(tRecipes, []string{}, []string{}), true))
+	return render(c, ui.Base(ui.RecipesList(tRecipes, []string{}, []string{}), loggedIn, user))
 }
 
-func (h *handler) getRecipe(c echo.Context) error {
+func (h *Handler) getRecipe(c echo.Context) error {
 	id := c.Param("id")
 	var r Recipe
 	var description, cookTime sql.NullString
@@ -196,13 +310,21 @@ func (h *handler) getRecipe(c echo.Context) error {
 		CreatedAt:    r.CreatedAt,
 	}
 
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	user := &ui.User{
+		ID:        toString(sess.Values["user_id"]),
+		Name:      toString(sess.Values["name"]),
+		Email:     toString(sess.Values["email"]),
+		AvatarURL: toString(sess.Values["avatar_url"]),
+	}
+	loggedIn := user.Name != ""
 	if isHtmxReq(c) {
 		return render(c, ui.ShowRecipe(recipeDetail))
 	}
-	return render(c, ui.Base(ui.ShowRecipe(recipeDetail), true))
+	return render(c, ui.Base(ui.ShowRecipe(recipeDetail), loggedIn, user))
 }
 
-func (h *handler) updateRecipe(c echo.Context) error {
+func (h *Handler) updateRecipe(c echo.Context) error {
 	id := c.Param("id")
 	title := c.FormValue("title")
 	description := c.FormValue("description")
@@ -222,7 +344,7 @@ func (h *handler) updateRecipe(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/recipes")
 }
 
-func (h *handler) deleteRecipe(c echo.Context) error {
+func (h *Handler) deleteRecipe(c echo.Context) error {
 	id := c.Param("id")
 
 	var exists int
@@ -246,7 +368,7 @@ func (h *handler) deleteRecipe(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/recipes")
 }
 
-func (h *handler) searchRecipes(c echo.Context) error {
+func (h *Handler) searchRecipes(c echo.Context) error {
 	query := c.FormValue("search")
 
 	if query == "" {
@@ -284,21 +406,36 @@ func (h *handler) searchRecipes(c echo.Context) error {
 		}
 	}
 
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	user := &ui.User{
+		ID:        toString(sess.Values["user_id"]),
+		Name:      toString(sess.Values["name"]),
+		Email:     toString(sess.Values["email"]),
+		AvatarURL: toString(sess.Values["avatar_url"]),
+	}
+	loggedIn := user.Name != ""
 	if isHtmxReq(c) {
 		return render(c, ui.RecipesList(tRecipes, []string{}, []string{}))
 	}
-
-	return render(c, ui.Base(ui.RecipesList(tRecipes, []string{}, []string{}), true))
+	return render(c, ui.Base(ui.RecipesList(tRecipes, []string{}, []string{}), loggedIn, user))
 }
 
-func (h *handler) showAddRecipeForm(c echo.Context) error {
+func (h *Handler) showAddRecipeForm(c echo.Context) error {
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	user := &ui.User{
+		ID:        toString(sess.Values["user_id"]),
+		Name:      toString(sess.Values["name"]),
+		Email:     toString(sess.Values["email"]),
+		AvatarURL: toString(sess.Values["avatar_url"]),
+	}
+	loggedIn := user.Name != ""
 	if isHtmxReq(c) {
 		return render(c, ui.AddRecipe())
 	}
-	return render(c, ui.Base(ui.AddRecipe(), true))
+	return render(c, ui.Base(ui.AddRecipe(), loggedIn, user))
 }
 
-func (h *handler) showEditRecipeForm(c echo.Context) error {
+func (h *Handler) showEditRecipeForm(c echo.Context) error {
 	id := c.Param("id")
 	var r Recipe
 	var description, cookTime sql.NullString
@@ -323,10 +460,18 @@ func (h *handler) showEditRecipeForm(c echo.Context) error {
 		CreatedAt:    r.CreatedAt,
 	}
 
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	user := &ui.User{
+		ID:        toString(sess.Values["user_id"]),
+		Name:      toString(sess.Values["name"]),
+		Email:     toString(sess.Values["email"]),
+		AvatarURL: toString(sess.Values["avatar_url"]),
+	}
+	loggedIn := user.Name != ""
 	if isHtmxReq(c) {
 		return render(c, ui.EditRecipe(recipeDetail))
 	}
-	return render(c, ui.Base(ui.EditRecipe(recipeDetail), true))
+	return render(c, ui.Base(ui.EditRecipe(recipeDetail), loggedIn, user))
 }
 
 func isHtmxReq(c echo.Context) bool {
@@ -343,6 +488,14 @@ func nullIfEmpty(s string) interface{} {
 func nullStringToString(ns sql.NullString) string {
 	if ns.Valid {
 		return ns.String
+	}
+	return ""
+}
+
+// Helper to convert interface{} to string
+func toString(v interface{}) string {
+	if s, ok := v.(string); ok {
+		return s
 	}
 	return ""
 }

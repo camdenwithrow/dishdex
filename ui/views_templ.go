@@ -14,7 +14,14 @@ import (
 	"time"
 )
 
-func Base(content templ.Component, loggedIn bool) templ.Component {
+type User struct {
+	ID        string
+	Name      string
+	Email     string
+	AvatarURL string
+}
+
+func Base(content templ.Component, loggedIn bool, user *User) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -39,7 +46,7 @@ func Base(content templ.Component, loggedIn bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = Nav(loggedIn).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = Nav(loggedIn, user).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -59,7 +66,14 @@ func Base(content templ.Component, loggedIn bool) templ.Component {
 	})
 }
 
-func Nav(loggedIn bool) templ.Component {
+func getHomeUrl(loggedIn bool) string {
+	if loggedIn {
+		return "/recipes"
+	}
+	return "/"
+}
+
+func Nav(loggedIn bool, user *User) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -80,22 +94,61 @@ func Nav(loggedIn bool) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<nav class=\"navbar\"><div class=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"flex justify-between h-16\"><div class=\"flex items-center\"><a href=\"/\" class=\"flex items-center text-xl font-bold nav-link\"><svg class=\"w-8 h-8 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10\"></path></svg> DishDex</a></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<nav class=\"navbar\"><div class=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"flex justify-between h-16\"><div class=\"flex items-center\"><a href=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if !loggedIn {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"flex items-center space-x-8\"><a href=\"/\" class=\"nav-link px-3 py-2 rounded-md text-sm font-medium\">Home</a> <a href=\"/recipes\" class=\"nav-link px-3 py-2 rounded-md text-sm font-medium\">Recipes</a><div class=\"flex items-center space-x-4\"><form action=\"/logout\" method=\"POST\" class=\"inline\"><button type=\"submit\" class=\"nav-link px-3 py-2 rounded-md text-sm font-medium\">Logout</button></form></div><a href=\"/health\" class=\"nav-link px-3 py-2 rounded-md text-sm font-medium\">Health</a></div>")
+		var templ_7745c5c3_Var3 templ.SafeURL
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(getHomeUrl(loggedIn))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 51, Col: 35}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" class=\"flex items-center text-xl font-bold nav-link\"><svg class=\"w-8 h-8 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10\"></path></svg> DishDex</a></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if loggedIn && user != nil {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"flex w-full justify-end items-center gap-4\"><div class=\"relative\"><input class=\"h-10 px-6 py-2 form-input block w-56 rounded-md border border-border focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm\" type=\"search\" name=\"search\" placeholder=\"Search recipes...\" hx-post=\"/recipes/search\" hx-trigger=\"input changed delay:500ms, keyup[key=='Enter']\" hx-target=\"#main-content\" hx-indicator=\"#search-loading\"><div id=\"search-loading\" class=\"htmx-indicator absolute r-0 t-0 b-0 w-4 h-4 z-10\"><div class=\"animate-spin rounded-full h-4 w-4 border-b-2 border-primary\"></div></div></div><div class=\"h-10 flex justify-center items-center text-center  bg-accent text-light font-medium rounded-lg\"><a hx-get=\"/recipes/new\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" class=\"w-full h-full px-6 py-2 font-medium cursor-pointer\" hx-push-url=\"true\"><div class=\"hidden sm:block\">Add Recipe</div><span class=\"block sm:hidden w-6 h-6 fill-light\"><svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"fill-light\"><g id=\"SVGRepo_bgCarrier\" stroke-width=\"0\"></g><g id=\"SVGRepo_tracerCarrier\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></g><g id=\"SVGRepo_iconCarrier\"><title></title><g id=\"Complete\"><g data-name=\"add\" id=\"add-2\"><g><line fill=\"none\" stroke=\"#000000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" x1=\"12\" x2=\"12\" y1=\"19\" y2=\"5\"></line> <line fill=\"none\" stroke=\"#000000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" x1=\"5\" x2=\"19\" y1=\"12\" y2=\"12\"></line></g></g></g></g></svg></span></a></div><!-- Avatar dropdown --><div class=\"relative\"><button id=\"user-menu-button\" type=\"button\" class=\"flex items-center focus:outline-none cursor-pointer\" onclick=\"document.getElementById('user-menu-dropdown').classList.toggle('hidden')\"><img src=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var4 string
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(user.AvatarURL)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 97, Col: 32}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" alt=\"Profile\" class=\"w-9 h-9 rounded-full border border-border shadow-sm\"></button><div id=\"user-menu-dropdown\" class=\"hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-border\"><div class=\"px-4 py-2 text-sm text-primary\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var5 string
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(user.Name)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 100, Col: 62}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div><a href=\"#\" class=\"block px-4 py-2 text-sm text-primary hover:bg-card\">Account</a><form action=\"/logout\" method=\"POST\"><button type=\"submit\" class=\"w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card\">Logout</button></form></div></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"flex w-full justify-end items-center gap-4\"><div class=\"relative\"><input class=\"h-10 px-6 py-2 form-input block w-56 rounded-md border border-border focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm\" type=\"search\" name=\"search\" placeholder=\"Search recipes...\" hx-post=\"/recipes/search\" hx-trigger=\"input changed delay:500ms, keyup[key=='Enter']\" hx-target=\"#main-content\" hx-indicator=\"#search-loading\"><div id=\"search-loading\" class=\"htmx-indicator absolute r-0 t-0 b-0 w-4 h-4 z-10\"><div class=\"animate-spin rounded-full h-4 w-4 border-b-2 border-primary\"></div></div></div><div class=\"h-10 flex justify-center items-center text-center  bg-accent text-light font-medium rounded-lg\"><a hx-get=\"/recipes/new\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" class=\"w-full h-full px-6 py-2 font-medium cursor-pointer\" hx-push-url=\"true\"><div class=\"hidden sm:block\">Add Recipe</div><span class=\"block sm:hidden w-6 h-6 fill-light\"><svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" class=\"fill-light\"><g id=\"SVGRepo_bgCarrier\" stroke-width=\"0\"></g><g id=\"SVGRepo_tracerCarrier\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></g><g id=\"SVGRepo_iconCarrier\"><title></title><g id=\"Complete\"><g data-name=\"add\" id=\"add-2\"><g><line fill=\"none\" stroke=\"#000000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" x1=\"12\" x2=\"12\" y1=\"19\" y2=\"5\"></line> <line fill=\"none\" stroke=\"#000000\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" x1=\"5\" x2=\"19\" y1=\"12\" y2=\"12\"></line></g></g></g></g></svg></span></a></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div class=\"flex items-center space-x-8\"><a href=\"/\" class=\"nav-link px-3 py-2 rounded-md text-sm font-medium\">Home</a> <a href=\"/recipes\" class=\"nav-link px-3 py-2 rounded-md text-sm font-medium\">Recipes</a> <a href=\"/auth/github\" class=\"nav-link px-3 py-2 rounded-md text-sm font-medium flex items-center\"><svg class=\"w-5 h-5 mr-2\" fill=\"currentColor\" viewBox=\"0 0 24 24\"><path d=\"M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.262.82-.582 0-.288-.012-1.243-.018-2.252-3.338.726-4.042-1.415-4.042-1.415-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.606-2.665-.304-5.466-1.332-5.466-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.984-.399 3.003-.404 1.018.005 2.046.138 3.004.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.803 5.625-5.475 5.921.43.371.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.218.699.825.58C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z\"></path></svg> Sign In with GitHub</a> <a href=\"/health\" class=\"nav-link px-3 py-2 rounded-md text-sm font-medium\">Health</a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></div></nav><div class=\"bg-border mx-6 h-0.5\"></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div></div></nav><div class=\"bg-border mx-6 h-0.5\"></div><script>\n\t\tdocument.addEventListener('click', function(event) {\n\t\t\tconst dropdown = document.getElementById('user-menu-dropdown');\n\t\t\tconst button = document.getElementById('user-menu-button');\n\t\t\tif (!dropdown || !button) return;\n\t\t\tif (!dropdown.classList.contains('hidden') && !dropdown.contains(event.target) && !button.contains(event.target)) {\n\t\t\t\tdropdown.classList.add('hidden');\n\t\t\t}\n\t\t});\n\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -119,12 +172,12 @@ func Home() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var3 == nil {
-			templ_7745c5c3_Var3 = templ.NopComponent
+		templ_7745c5c3_Var6 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var6 == nil {
+			templ_7745c5c3_Var6 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"max-w-4xl mx-auto text-center\"><h1 class=\"text-4xl font-bold mb-4 text-primary\">Welcome to DishDex</h1><p class=\"text-xl mb-8 text-secondary\">Your personal library of recipes, made with ❤️ for my mom</p><div class=\"mt-12\"><h2 class=\"text-2xl font-semibold mb-6 text-primary\">Get Started</h2><div class=\"grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto\"><a href=\"/login\" class=\"group block p-6 btn-primary rounded-lg shadow-md hover:shadow-lg\"><div class=\"flex items-center justify-center\"><svg class=\"w-8 h-8 mr-3\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z\"></path></svg> <span class=\"text-lg font-medium\">Sign In</span></div></a> <a href=\"/register\" class=\"group block p-6 btn-secondary rounded-lg shadow-md hover:shadow-lg\"><div class=\"flex items-center justify-center\"><svg class=\"w-8 h-8 mr-3\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z\"></path></svg> <span class=\"text-lg font-medium\">Create Account</span></div></a></div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"max-w-4xl mx-auto text-center\"><h1 class=\"text-4xl font-bold mb-4 text-primary\">Welcome to DishDex</h1><p class=\"text-xl mb-8 text-secondary\">Your personal library of recipes, made with ❤️ for my mom</p><div class=\"mt-12\"><h2 class=\"text-2xl font-semibold mb-6 text-primary\">Get Started</h2><div class=\"grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto\"><a href=\"/auth/github\" class=\"group block p-6 btn-primary rounded-lg shadow-md hover:shadow-lg flex items-center justify-center\"><svg class=\"w-8 h-8 mr-3\" fill=\"currentColor\" viewBox=\"0 0 24 24\"><path d=\"M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.262.82-.582 0-.288-.012-1.243-.018-2.252-3.338.726-4.042-1.415-4.042-1.415-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.606-2.665-.304-5.466-1.332-5.466-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.984-.399 3.003-.404 1.018.005 2.046.138 3.004.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.803 5.625-5.475 5.921.43.371.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.218.699.825.58C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z\"></path></svg> <span class=\"text-lg font-medium\">Sign In with GitHub</span></a></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -155,22 +208,22 @@ func RecipesList(recipes []Recipe, tags []string, selectedTags []string) templ.C
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var4 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var4 == nil {
-			templ_7745c5c3_Var4 = templ.NopComponent
+		templ_7745c5c3_Var7 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var7 == nil {
+			templ_7745c5c3_Var7 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div class=\"mb-4\"><h2 class=\"text-xl font-bold\">My Recipes</h2></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"mb-4\"><h2 class=\"text-xl font-bold\">My Recipes</h2></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if len(recipes) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<div class=\"text-center py-12\"><div class=\"mb-4 text-border\"><svg class=\"mx-auto h-12 w-12\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z\"></path></svg></div><p class=\"mb-4 text-secondary\">No recipes found.</p><a href=\"/recipes/new\" class=\"inline-flex items-center px-4 py-2 btn-primary text-sm font-medium rounded-md\">Add Recipe</a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"text-center py-12\"><div class=\"mb-4 text-border\"><svg class=\"mx-auto h-12 w-12\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z\"></path></svg></div><p class=\"mb-4 text-secondary\">No recipes found.</p><a href=\"/recipes/new\" class=\"inline-flex items-center px-4 py-2 btn-primary text-sm font-medium rounded-md\">Add Recipe</a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"grid gap-6 md:grid-cols-2 lg:grid-cols-3\" id=\"recipes-grid\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div class=\"grid gap-6 md:grid-cols-2 lg:grid-cols-3\" id=\"recipes-grid\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -180,7 +233,7 @@ func RecipesList(recipes []Recipe, tags []string, selectedTags []string) templ.C
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -205,87 +258,87 @@ func RecipeCard(recipe Recipe) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var5 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var5 == nil {
-			templ_7745c5c3_Var5 = templ.NopComponent
+		templ_7745c5c3_Var8 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var8 == nil {
+			templ_7745c5c3_Var8 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden bg-card recipe-card\" id=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var6 string
-		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs("recipe-" + recipe.ID)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 158, Col: 144}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\"><a hx-get=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var7 string
-		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(templ.SafeURL("/recipes/" + recipe.ID))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 160, Col: 49}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" class=\"cursor-pointer\" hx-push-url=\"true\"><div class=\"p-6\"><h3 class=\"text-xl font-semibold mb-2 text-text-primary\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var8 string
-		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Title)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 167, Col: 74}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</h3><p class=\"text-sm mb-3 line-clamp-2 text-secondary\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<div class=\"rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden bg-card recipe-card\" id=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var9 string
-		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Description)
+		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs("recipe-" + recipe.ID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 168, Col: 75}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 202, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\"><a hx-get=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var10 string
+		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(templ.SafeURL("/recipes/" + recipe.ID))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 205, Col: 50}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" class=\"cursor-pointer\" hx-push-url=\"true\"><div class=\"p-6\"><h3 class=\"text-xl font-semibold mb-2 text-text-primary\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var11 string
+		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Title)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 212, Col: 75}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</h3><p class=\"text-sm mb-3 line-clamp-2 text-secondary\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var12 string
+		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Description)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 213, Col: 76}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if recipe.CookTime != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<div class=\"flex items-center text-sm text-accent\"><svg class=\"w-4 h-4 mr-1\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<div class=\"flex items-center text-sm text-accent\"><svg class=\"w-4 h-4 mr-1\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var10 string
-			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.CookTime)
+			var templ_7745c5c3_Var13 string
+			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.CookTime)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 174, Col: 22}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 224, Col: 23}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</div></a></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</div></a></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -309,16 +362,16 @@ func AddRecipe() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var11 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var11 == nil {
-			templ_7745c5c3_Var11 = templ.NopComponent
+		templ_7745c5c3_Var14 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var14 == nil {
+			templ_7745c5c3_Var14 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
 		templ_7745c5c3_Err = InstructionSteps().Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<div class=\"max-w-2xl mx-auto\"><div class=\"mt-4 mb-6\"><h1 class=\"text-3xl font-bold text-primary mb-2\">Add New Recipe</h1><p class=\"text-secondary\">Share your favorite recipe with the community</p></div><form hx-post=\"/recipes\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" class=\"space-y-6\" hx-push-url=\"true\"><div class=\"mb-3\"><label for=\"title\" class=\"block text-sm font-medium text-primary mb-1\">Recipe Title</label> <input type=\"text\" id=\"title\" name=\"title\" required class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary\" placeholder=\"Enter recipe title\"></div><div class=\"mb-3\"><label for=\"description\" class=\"block text-sm font-medium text-primary mb-1\">Description</label> <textarea id=\"description\" name=\"description\" rows=\"2\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none\" placeholder=\"Brief description of your recipe\"></textarea></div><div class=\"grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3\"><div><label for=\"cookTime\" class=\"block text-sm font-medium text-primary mb-1\">Cook Time</label> <input type=\"text\" id=\"cookTime\" name=\"cookTime\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary\" placeholder=\"e.g., 30 minutes\"></div><div><label for=\"servings\" class=\"block text-sm font-medium text-primary mb-1\">Servings</label> <input type=\"number\" id=\"servings\" name=\"servings\" min=\"1\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary\" placeholder=\"4\"></div></div><div class=\"mb-3\"><label for=\"ingredients\" class=\"block text-sm font-medium text-primary mb-1\">Ingredients</label> <textarea id=\"ingredients\" name=\"ingredients\" rows=\"4\" required class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none\" placeholder=\"List ingredients, one per line:&#10;2 cups flour&#10;1 cup sugar&#10;3 eggs\"></textarea></div><div class=\"mb-3\"><label for=\"instructions\" class=\"block text-sm font-medium text-primary mb-1\">Instructions</label><div id=\"instructions-steps\"></div><input type=\"hidden\" id=\"instructions\" name=\"instructions\" required></div><div class=\"flex gap-4 pt-3\"><a href=\"/recipes\" class=\"flex-1 border border-border cursor-pointer text-primary px-7 py-3 rounded-lg font-medium transition-colors duration-200 text-center hover:bg-card focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2\">Cancel</a> <button type=\"submit\" class=\"flex-1 bg-accent cursor-pointer text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2\">Save Recipe</button></div></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<div class=\"max-w-2xl mx-auto\"><div class=\"mt-4 mb-6\"><h1 class=\"text-3xl font-bold text-primary mb-2\">Add New Recipe</h1><p class=\"text-secondary\">Share your favorite recipe with the community</p></div><form hx-post=\"/recipes\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" class=\"space-y-6\" hx-push-url=\"true\"><div class=\"mb-3\"><label for=\"title\" class=\"block text-sm font-medium text-primary mb-1\">Recipe Title</label> <input type=\"text\" id=\"title\" name=\"title\" required class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary\" placeholder=\"Enter recipe title\"></div><div class=\"mb-3\"><label for=\"description\" class=\"block text-sm font-medium text-primary mb-1\">Description</label> <textarea id=\"description\" name=\"description\" rows=\"2\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none\" placeholder=\"Brief description of your recipe\"></textarea></div><div class=\"grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3\"><div><label for=\"cookTime\" class=\"block text-sm font-medium text-primary mb-1\">Cook Time</label> <input type=\"text\" id=\"cookTime\" name=\"cookTime\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary\" placeholder=\"e.g., 30 minutes\"></div><div><label for=\"servings\" class=\"block text-sm font-medium text-primary mb-1\">Servings</label> <input type=\"number\" id=\"servings\" name=\"servings\" min=\"1\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary\" placeholder=\"4\"></div></div><div class=\"mb-3\"><label for=\"ingredients\" class=\"block text-sm font-medium text-primary mb-1\">Ingredients</label> <textarea id=\"ingredients\" name=\"ingredients\" rows=\"4\" required class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none\" placeholder=\"List ingredients, one per line:\n2 cups flour\n1 cup sugar\n3 eggs\"></textarea></div><div class=\"mb-3\"><label for=\"instructions\" class=\"block text-sm font-medium text-primary mb-1\">Instructions</label><div id=\"instructions-steps\"></div><input type=\"hidden\" id=\"instructions\" name=\"instructions\" required></div><div class=\"flex gap-4 pt-3\"><a href=\"/recipes\" class=\"flex-1 border border-border cursor-pointer text-primary px-7 py-3 rounded-lg font-medium transition-colors duration-200 text-center hover:bg-card focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2\">Cancel</a> <button type=\"submit\" class=\"flex-1 bg-accent cursor-pointer text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2\">Save Recipe</button></div></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -342,120 +395,120 @@ func EditRecipe(recipe RecipeDetail) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var12 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var12 == nil {
-			templ_7745c5c3_Var12 = templ.NopComponent
+		templ_7745c5c3_Var15 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var15 == nil {
+			templ_7745c5c3_Var15 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
 		templ_7745c5c3_Err = InstructionSteps().Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<div class=\"max-w-2xl mx-auto\"><div class=\"mt-4 mb-6\"><h1 class=\"text-3xl font-bold text-primary mb-2\">Edit Recipe</h1><p class=\"text-secondary\">Update your recipe details below</p></div><form action=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<div class=\"max-w-2xl mx-auto\"><div class=\"mt-4 mb-6\"><h1 class=\"text-3xl font-bold text-primary mb-2\">Edit Recipe</h1><p class=\"text-secondary\">Update your recipe details below</p></div><form action=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var13 templ.SafeURL
-		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs("/recipes/" + recipe.ID)
+		var templ_7745c5c3_Var16 templ.SafeURL
+		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinURLErrs("/recipes/" + recipe.ID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 287, Col: 35}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "\" method=\"POST\" hx-put=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var14 string
-		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs("/recipes/" + recipe.ID)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 289, Col: 35}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" class=\"space-y-6\"><input type=\"hidden\" name=\"_method\" value=\"PUT\"><div class=\"mb-3\"><label for=\"title\" class=\"block text-sm font-medium text-primary mb-1\">Recipe Title</label> <input type=\"text\" id=\"title\" name=\"title\" required value=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var15 string
-		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Title)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 302, Col: 24}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary\" placeholder=\"Enter recipe title\"></div><div class=\"mb-3\"><label for=\"description\" class=\"block text-sm font-medium text-primary mb-1\">Description</label> <textarea id=\"description\" name=\"description\" rows=\"2\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none\" placeholder=\"Brief description of your recipe\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var16 string
-		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Description)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 315, Col: 24}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 329, Col: 35}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "</textarea></div><div class=\"grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3\"><div><label for=\"cookTime\" class=\"block text-sm font-medium text-primary mb-1\">Cook Time</label> <input type=\"text\" id=\"cookTime\" name=\"cookTime\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\" method=\"POST\" hx-put=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var17 string
-		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.CookTime)
+		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs("/recipes/" + recipe.ID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 324, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 331, Col: 35}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary\" placeholder=\"e.g., 30 minutes\"></div><div><label for=\"servings\" class=\"block text-sm font-medium text-primary mb-1\">Servings</label> <input type=\"number\" id=\"servings\" name=\"servings\" min=\"1\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary\" placeholder=\"4\"></div></div><div class=\"mb-3\"><label for=\"ingredients\" class=\"block text-sm font-medium text-primary mb-1\">Ingredients</label> <textarea id=\"ingredients\" name=\"ingredients\" rows=\"4\" required class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none\" placeholder=\"List ingredients, one per line:&#10;2 cups flour&#10;1 cup sugar&#10;3 eggs\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" class=\"space-y-6\"><input type=\"hidden\" name=\"_method\" value=\"PUT\"><div class=\"mb-3\"><label for=\"title\" class=\"block text-sm font-medium text-primary mb-1\">Recipe Title</label> <input type=\"text\" id=\"title\" name=\"title\" required value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var18 string
-		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Ingredients)
+		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 350, Col: 24}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 344, Col: 25}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</textarea></div><div class=\"mb-3\"><label for=\"instructions\" class=\"block text-sm font-medium text-primary mb-1\">Instructions</label><div id=\"instructions-steps\"></div><input type=\"hidden\" id=\"instructions\" name=\"instructions\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary\" placeholder=\"Enter recipe title\"></div><div class=\"mb-3\"><label for=\"description\" class=\"block text-sm font-medium text-primary mb-1\">Description</label> <textarea id=\"description\" name=\"description\" rows=\"2\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none\" placeholder=\"Brief description of your recipe\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var19 string
-		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Instructions)
+		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Description)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 355, Col: 89}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 357, Col: 25}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\" required></div><div class=\"flex gap-4 pt-3\"><a href=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</textarea></div><div class=\"grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3\"><div><label for=\"cookTime\" class=\"block text-sm font-medium text-primary mb-1\">Cook Time</label> <input type=\"text\" id=\"cookTime\" name=\"cookTime\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var20 templ.SafeURL
-		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinURLErrs("/recipes/" + recipe.ID)
+		var templ_7745c5c3_Var20 string
+		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.CookTime)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 359, Col: 35}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 366, Col: 29}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\" class=\"flex-1 border border-border cursor-pointer text-primary px-7 py-3 rounded-lg font-medium transition-colors duration-200 text-center hover:bg-card focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2\">Cancel</a> <button type=\"submit\" class=\"flex-1 bg-accent cursor-pointer text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2\">Update Recipe</button></div></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary\" placeholder=\"e.g., 30 minutes\"></div><div><label for=\"servings\" class=\"block text-sm font-medium text-primary mb-1\">Servings</label> <input type=\"number\" id=\"servings\" name=\"servings\" min=\"1\" class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary\" placeholder=\"4\"></div></div><div class=\"mb-3\"><label for=\"ingredients\" class=\"block text-sm font-medium text-primary mb-1\">Ingredients</label> <textarea id=\"ingredients\" name=\"ingredients\" rows=\"4\" required class=\"w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary resize-none\" placeholder=\"List ingredients, one per line:\n2 cups flour\n1 cup sugar\n3 eggs\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var21 string
+		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Ingredients)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 395, Col: 25}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</textarea></div><div class=\"mb-3\"><label for=\"instructions\" class=\"block text-sm font-medium text-primary mb-1\">Instructions</label><div id=\"instructions-steps\"></div><input type=\"hidden\" id=\"instructions\" name=\"instructions\" value=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var22 string
+		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Instructions)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 400, Col: 90}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" required></div><div class=\"flex gap-4 pt-3\"><a href=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var23 templ.SafeURL
+		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinURLErrs("/recipes/" + recipe.ID)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 404, Col: 35}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "\" class=\"flex-1 border border-border cursor-pointer text-primary px-7 py-3 rounded-lg font-medium transition-colors duration-200 text-center hover:bg-card focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2\">Cancel</a> <button type=\"submit\" class=\"flex-1 bg-accent cursor-pointer text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2\">Update Recipe</button></div></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -479,12 +532,12 @@ func InstructionSteps() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var21 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var21 == nil {
-			templ_7745c5c3_Var21 = templ.NopComponent
+		templ_7745c5c3_Var24 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var24 == nil {
+			templ_7745c5c3_Var24 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<script>\n\t\tdocument.addEventListener('DOMContentLoaded', initializeInstructionSteps)\n\t\tdocument.body.addEventListener('htmx:afterSwap', initializeInstructionSteps)\n\t\tfunction initializeInstructionSteps() {\n\t\t\t// Only run on AddRecipe or EditRecipe pages by checking for the form\n\t\t\tconst stepsContainer = document.getElementById('instructions-steps');\n\t\t\tconst hiddenInput = document.getElementById('instructions');\n\t\t\tif (!stepsContainer || !hiddenInput) return;\n\n\t\t\tlet steps = [];\n\t\t\tif (hiddenInput && hiddenInput.value.trim() !== '') {\n\t\t\t\tsteps = hiddenInput.value.split('\\n');\n\t\t\t} else {\n\t\t\t\tsteps = [''];\n\t\t\t}\n\n\t\t\tfunction renderSteps() {\n\t\t\t\tstepsContainer.innerHTML = '';\n\t\t\t\tsteps.forEach((step, idx) => {\n\t\t\t\t\tconst wrapper = document.createElement('div');\n\t\t\t\t\twrapper.className = 'flex items-center mb-2';\n\n\t\t\t\t\tconst number = document.createElement('div');\n\t\t\t\t\tnumber.className = 'w-6 h-6 pb-0.5 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium mr-3 flex-shrink-0 leading-none';\n\t\t\t\t\tnumber.textContent = idx + 1;\n\n\t\t\t\t\tconst input = document.createElement('input');\n\t\t\t\t\tinput.type = 'text';\n\t\t\t\t\tinput.className = 'flex-1 px-3 py-2 border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary bg-card text-primary placeholder-secondary';\n\t\t\t\t\tinput.placeholder = `Step ${idx + 1}`;\n\t\t\t\t\tinput.value = step;\n\t\t\t\t\tinput.dataset.idx = idx;\n\n\t\t\t\t\tinput.addEventListener('keydown', function(e) {\n\t\t\t\t\t\tif (e.key === 'Enter') {\n\t\t\t\t\t\t\te.preventDefault();\n\t\t\t\t\t\t\tif (idx === steps.length - 1 && input.value.trim() !== '') {\n\t\t\t\t\t\t\t\tsteps.push('');\n\t\t\t\t\t\t\t\trenderSteps();\n\t\t\t\t\t\t\t\tsetTimeout(() => {\n\t\t\t\t\t\t\t\t\tstepsContainer.querySelectorAll('input')[idx + 1].focus();\n\t\t\t\t\t\t\t\t}, 0);\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t\t// Optional: handle \"Backspace\" to remove empty step\n\t\t\t\t\t\tif (e.key === 'Backspace' && input.value === '' && steps.length > 1) {\n\t\t\t\t\t\t\tsteps.splice(idx, 1);\n\t\t\t\t\t\t\trenderSteps();\n\t\t\t\t\t\t\tsetTimeout(() => {\n\t\t\t\t\t\t\t\tstepsContainer.querySelectorAll('input')[Math.max(0, idx - 1)].focus();\n\t\t\t\t\t\t\t}, 0);\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\n\t\t\t\t\tinput.addEventListener('input', function(e) {\n\t\t\t\t\t\tsteps[idx] = input.value;\n\t\t\t\t\t\tupdateHiddenInput();\n\t\t\t\t\t});\n\n\t\t\t\t\twrapper.appendChild(number);\n\t\t\t\t\twrapper.appendChild(input);\n\t\t\t\t\tstepsContainer.appendChild(wrapper);\n\t\t\t\t});\n\t\t\t\tupdateHiddenInput();\n\t\t\t}\n\n\t\t\tfunction updateHiddenInput() {\n\t\t\t\thiddenInput.value = steps.filter(s => s.trim() !== '').join('\\n');\n\t\t\t}\n\n\t\t\trenderSteps();\n\t\t};\n\t</script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "<script>\n\tdocument.addEventListener('DOMContentLoaded', initializeInstructionSteps)\n\tdocument.body.addEventListener('htmx:afterSwap', initializeInstructionSteps)\n\tfunction initializeInstructionSteps() {\n\t\t// Only run on AddRecipe or EditRecipe pages by checking for the form\n\t\tconst stepsContainer = document.getElementById('instructions-steps');\n\t\tconst hiddenInput = document.getElementById('instructions');\n\t\tif (!stepsContainer || !hiddenInput) return;\n\n\t\tlet steps = [];\n\t\tif (hiddenInput && hiddenInput.value.trim() !== '') {\n\t\t\tsteps = hiddenInput.value.split('\\n');\n\t\t} else {\n\t\t\tsteps = [''];\n\t\t}\n\n\t\tfunction renderSteps() {\n\t\t\tstepsContainer.innerHTML = '';\n\t\t\tsteps.forEach((step, idx) => {\n\t\t\t\tconst wrapper = document.createElement('div');\n\t\t\t\twrapper.className = 'flex items-center mb-2';\n\n\t\t\t\tconst number = document.createElement('div');\n\t\t\t\tnumber.className = 'w-6 h-6 pb-0.5 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium mr-3 flex-shrink-0 leading-none';\n\t\t\t\tnumber.textContent = idx + 1;\n\n\t\t\t\tconst input = document.createElement('input');\n\t\t\t\tinput.type = 'text';\n\t\t\t\tinput.className = 'flex-1 px-3 py-2 border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary bg-card text-primary placeholder-secondary';\n\t\t\t\tinput.placeholder = `Step ${idx + 1}`;\n\t\t\t\tinput.value = step;\n\t\t\t\tinput.dataset.idx = idx;\n\n\t\t\t\tinput.addEventListener('keydown', function (e) {\n\t\t\t\t\tif (e.key === 'Enter') {\n\t\t\t\t\t\te.preventDefault();\n\t\t\t\t\t\tif (idx === steps.length - 1 && input.value.trim() !== '') {\n\t\t\t\t\t\t\tsteps.push('');\n\t\t\t\t\t\t\trenderSteps();\n\t\t\t\t\t\t\tsetTimeout(() => {\n\t\t\t\t\t\t\t\tstepsContainer.querySelectorAll('input')[idx + 1].focus();\n\t\t\t\t\t\t\t}, 0);\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t\t// Optional: handle \"Backspace\" to remove empty step\n\t\t\t\t\tif (e.key === 'Backspace' && input.value === '' && steps.length > 1) {\n\t\t\t\t\t\tsteps.splice(idx, 1);\n\t\t\t\t\t\trenderSteps();\n\t\t\t\t\t\tsetTimeout(() => {\n\t\t\t\t\t\t\tstepsContainer.querySelectorAll('input')[Math.max(0, idx - 1)].focus();\n\t\t\t\t\t\t}, 0);\n\t\t\t\t\t}\n\t\t\t\t});\n\n\t\t\t\tinput.addEventListener('input', function (e) {\n\t\t\t\t\tsteps[idx] = input.value;\n\t\t\t\t\tupdateHiddenInput();\n\t\t\t\t});\n\n\t\t\t\twrapper.appendChild(number);\n\t\t\t\twrapper.appendChild(input);\n\t\t\t\tstepsContainer.appendChild(wrapper);\n\t\t\t});\n\t\t\tupdateHiddenInput();\n\t\t}\n\n\t\tfunction updateHiddenInput() {\n\t\t\thiddenInput.value = steps.filter(s => s.trim() !== '').join('\\n');\n\t\t}\n\n\t\trenderSteps();\n\t};\n</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -518,155 +571,155 @@ func ShowRecipe(recipe RecipeDetail) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var22 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var22 == nil {
-			templ_7745c5c3_Var22 = templ.NopComponent
+		templ_7745c5c3_Var25 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var25 == nil {
+			templ_7745c5c3_Var25 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<div class=\"max-w-4xl mx-auto\"><!-- Header --><div class=\"mb-8\"><div class=\"flex items-center justify-between mb-4\"><a hx-get=\"/recipes\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" class=\"inline-flex items-center text-primary hover:text-primary/80 transition-colors cursor-pointer\" hx-push-url=\"true\"><svg class=\"w-5 h-5 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 19l-7-7 7-7\"></path></svg> Back to Recipes</a><div class=\"flex gap-2\"><a hx-get=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var23 string
-		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(templ.SafeURL("/recipes/" + recipe.ID + "/edit"))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 480, Col: 62}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" class=\"cursor-pointer inline-flex items-center px-4 py-2 text-primary rounded-lg hover:text-accent transition-colors\"><svg class=\"w-4 h-4 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z\"></path></svg> Edit</a> <button hx-delete=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var24 string
-		templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs("/recipes/" + recipe.ID)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 490, Col: 41}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" hx-confirm=\"Are you sure you want to delete this recipe?\" class=\"px-4 py-2 text-primary rounded-lg cursor-pointer hover:bg-red-700 hover:text-light transition-colors\"><svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16\"></path></svg> Delete</button></div></div><h1 class=\"text-4xl font-bold text-primary mb-2\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var25 string
-		templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Title)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 503, Col: 65}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "</h1><p class=\"text-xl text-secondary mb-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<div class=\"max-w-4xl mx-auto\"><!-- Header --><div class=\"mb-8\"><div class=\"flex items-center justify-between mb-4\"><a hx-get=\"/recipes\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" class=\"inline-flex items-center text-primary hover:text-primary/80 transition-colors cursor-pointer\" hx-push-url=\"true\"><svg class=\"w-5 h-5 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 19l-7-7 7-7\"></path></svg> Back to Recipes</a><div class=\"flex gap-2\"><a hx-get=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var26 string
-		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Description)
+		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(templ.SafeURL("/recipes/" + recipe.ID + "/edit"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 504, Col: 61}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 525, Col: 63}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" class=\"cursor-pointer inline-flex items-center px-4 py-2 text-primary rounded-lg hover:text-accent transition-colors\"><svg class=\"w-4 h-4 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z\"></path></svg> Edit</a> <button hx-delete=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var27 string
+		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs("/recipes/" + recipe.ID)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 541, Col: 41}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "\" hx-target=\"#main-content\" hx-swap=\"innerHTML\" hx-confirm=\"Are you sure you want to delete this recipe?\" class=\"px-4 py-2 text-primary rounded-lg cursor-pointer hover:bg-red-700 hover:text-light transition-colors\"><svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16\"></path></svg> Delete</button></div></div><h1 class=\"text-4xl font-bold text-primary mb-2\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var28 string
+		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Title)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 559, Col: 66}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</h1><p class=\"text-xl text-secondary mb-4\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var29 string
+		templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.Description)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 560, Col: 62}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if recipe.CookTime != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<div class=\"flex items-center text-accent\"><svg class=\"w-5 h-5 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg> <span class=\"font-medium\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "<div class=\"flex items-center text-accent\"><svg class=\"w-5 h-5 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg> <span class=\"font-medium\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var27 string
-			templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.CookTime)
+			var templ_7745c5c3_Var30 string
+			templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(recipe.CookTime)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 510, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 571, Col: 48}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</span></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "</span></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</div><!-- Recipe Content --><div class=\"grid grid-cols-1 lg:grid-cols-2 gap-8\"><!-- Ingredients --><div class=\"bg-card rounded-lg p-6 shadow-md\"><h2 class=\"text-2xl font-semibold text-primary mb-4 flex items-center\"><svg class=\"w-6 h-6 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10\"></path></svg> Ingredients</h2><div class=\"space-y-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</div><!-- Recipe Content --><div class=\"grid grid-cols-1 lg:grid-cols-2 gap-8\"><!-- Ingredients --><div class=\"bg-card rounded-lg p-6 shadow-md\"><h2 class=\"text-2xl font-semibold text-primary mb-4 flex items-center\"><svg class=\"w-6 h-6 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10\"></path></svg> Ingredients</h2><div class=\"space-y-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for _, ingredient := range strings.Split(recipe.Ingredients, "\n") {
 			if strings.TrimSpace(ingredient) != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "<div class=\"flex items-start\"><div class=\"w-2 h-2 bg-primary rounded-full mt-2 mr-3 flex-shrink-0\"></div><p class=\"text-primary\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<div class=\"flex items-start\"><div class=\"w-2 h-2 bg-primary rounded-full mt-2 mr-3 flex-shrink-0\"></div><p class=\"text-primary\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var28 string
-				templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(ingredient)
+				var templ_7745c5c3_Var31 string
+				templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(ingredient)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 530, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 595, Col: 44}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "</p></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "</p></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</div></div><!-- Instructions --><div class=\"bg-card rounded-lg p-6 shadow-md\"><h2 class=\"text-2xl font-semibold text-primary mb-4 flex items-center\"><svg class=\"w-6 h-6 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2\"></path></svg> Instructions</h2><div class=\"space-y-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "</div></div><!-- Instructions --><div class=\"bg-card rounded-lg p-6 shadow-md\"><h2 class=\"text-2xl font-semibold text-primary mb-4 flex items-center\"><svg class=\"w-6 h-6 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2\"></path></svg> Instructions</h2><div class=\"space-y-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for i, instruction := range strings.Split(recipe.Instructions, "\n") {
 			if strings.TrimSpace(instruction) != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<div class=\"flex items-start\"><div class=\"w-6 h-6 pb-0.5 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium mr-3 flex-shrink-0\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "<div class=\"flex items-start\"><div class=\"w-6 h-6 pb-0.5 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium mr-3 flex-shrink-0\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var29 string
-				templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(i + 1)
+				var templ_7745c5c3_Var32 string
+				templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(i + 1)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 550, Col: 15}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 621, Col: 16}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "</div><p class=\"text-primary\">")
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var30 string
-				templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(instruction)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 552, Col: 44}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "</div><p class=\"text-primary\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "</p></div>")
+				var templ_7745c5c3_Var33 string
+				templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(instruction)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 623, Col: 45}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "</p></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "</div></div></div><!-- Footer --><div class=\"mt-8 pt-6 border-t border-border\"><p class=\"text-sm text-secondary text-center\">Created on ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "</div></div></div><!-- Footer --><div class=\"mt-8 pt-6 border-t border-border\"><p class=\"text-sm text-secondary text-center\">Created on ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var31 string
-		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(
+		var templ_7745c5c3_Var34 string
+		templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(
 			func() string {
 				parsed, err := time.Parse("2006-01-02T15:04:05Z", recipe.CreatedAt)
 				if err != nil {
@@ -676,13 +729,13 @@ func ShowRecipe(recipe RecipeDetail) templ.Component {
 				return parsed.Format("Jan 2, 2006")
 			}())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 571, Col: 8}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 641, Col: 6}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "</p></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "</p></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -707,25 +760,25 @@ func SuccessMessage(message string) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var32 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var32 == nil {
-			templ_7745c5c3_Var32 = templ.NopComponent
+		templ_7745c5c3_Var35 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var35 == nil {
+			templ_7745c5c3_Var35 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "<div class=\"fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50\" id=\"success-message\"><div class=\"flex items-center\"><svg class=\"w-5 h-5 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M5 13l4 4L19 7\"></path></svg> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "<div class=\"fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50\" id=\"success-message\"><div class=\"flex items-center\"><svg class=\"w-5 h-5 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M5 13l4 4L19 7\"></path></svg> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var33 string
-		templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(message)
+		var templ_7745c5c3_Var36 string
+		templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(message)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 585, Col: 11}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 654, Col: 12}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "</div></div><script>\n\t\tsetTimeout(() => {\n\t\t\tconst message = document.getElementById('success-message');\n\t\t\tif (message) {\n\t\t\t\tmessage.remove();\n\t\t\t}\n\t\t}, 3000);\n\t</script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "</div></div><script>\n\tsetTimeout(() => {\n\t\tconst message = document.getElementById('success-message');\n\t\tif (message) {\n\t\t\tmessage.remove();\n\t\t}\n\t}, 3000);\n</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -750,12 +803,12 @@ func LoadingIndicator() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var34 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var34 == nil {
-			templ_7745c5c3_Var34 = templ.NopComponent
+		templ_7745c5c3_Var37 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var37 == nil {
+			templ_7745c5c3_Var37 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "<div class=\"flex items-center justify-center py-8\"><div class=\"animate-spin rounded-full h-8 w-8 border-b-2 border-primary\"></div><span class=\"ml-2 text-secondary\">Loading...</span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "<div class=\"flex items-center justify-center py-8\"><div class=\"animate-spin rounded-full h-8 w-8 border-b-2 border-primary\"></div><span class=\"ml-2 text-secondary\">Loading...</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -780,25 +833,25 @@ func ErrorMessage(message string) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var35 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var35 == nil {
-			templ_7745c5c3_Var35 = templ.NopComponent
+		templ_7745c5c3_Var38 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var38 == nil {
+			templ_7745c5c3_Var38 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "<div class=\"bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4\" role=\"alert\"><div class=\"flex items-center\"><svg class=\"w-5 h-5 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "<div class=\"bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4\" role=\"alert\"><div class=\"flex items-center\"><svg class=\"w-5 h-5 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var36 string
-		templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(message)
+		var templ_7745c5c3_Var39 string
+		templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(message)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 613, Col: 11}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/views.templ`, Line: 687, Col: 12}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "</div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "</div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

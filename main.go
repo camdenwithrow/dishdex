@@ -19,6 +19,7 @@ import (
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/github"
 	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 var PORT = "4444"
@@ -85,21 +86,35 @@ func main() {
 	e.POST("/logout", handler.logout)
 	// Routes
 	e.GET("/", home)
+	e.GET("/signin", signIn)
 	e.GET("/health", health)
-	e.GET("/recipes/new", handler.showAddRecipeForm)
-	e.POST("/recipes", handler.createRecipe)
-	e.GET("/recipes", handler.listRecipes)
-	e.POST("/recipes/search", handler.searchRecipes)
-	e.GET("/recipes/:id", handler.getRecipe)
-	e.PUT("/recipes/:id", handler.updateRecipe)
-	e.DELETE("/recipes/:id", handler.deleteRecipe)
-	e.GET("/recipes/:id/edit", handler.showEditRecipeForm)
+
+	recipes := e.Group("/recipes", requireLogin)
+
+	recipes.GET("", handler.listRecipes)
+	recipes.GET("/new", handler.showAddRecipeForm)
+	recipes.POST("", handler.createRecipe)
+	recipes.POST("/search", handler.searchRecipes)
+	recipes.GET("/:id", handler.getRecipe)
+	recipes.PUT("/:id", handler.updateRecipe)
+	recipes.DELETE("/:id", handler.deleteRecipe)
+	recipes.GET("/:id/edit", handler.showEditRecipeForm)
 
 	e.Logger.Fatal(e.Start(":" + PORT))
 }
 
 func initDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "dishdex.db")
+	// Check for Turso env vars
+	dbUrl := os.Getenv("TURSO_DATABASE_URL")
+	dbToken := os.Getenv("TURSO_AUTH_TOKEN")
+	var db *sql.DB
+	var err error
+	if dbUrl != "" && dbToken != "" {
+		dbUrlFull := dbUrl + "?authToken=" + dbToken
+		db, err = sql.Open("libsql", dbUrlFull)
+	} else {
+		db, err = sql.Open("sqlite3", "dishdex.db")
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -158,6 +173,14 @@ func home(c echo.Context) error {
 		return render(c, ui.Home())
 	}
 	return render(c, ui.Base(ui.Home(), false, nil))
+}
+
+func signIn(c echo.Context) error {
+	loggedIn, _ := c.Get("loggedIn").(bool)
+	if loggedIn {
+		return c.Redirect(http.StatusSeeOther, "/recipes")
+	}
+	return render(c, ui.Base(ui.SignInPage(), false, nil))
 }
 
 func (h *Handler) authSessionMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
@@ -498,4 +521,14 @@ func toString(v interface{}) string {
 		return s
 	}
 	return ""
+}
+
+func requireLogin(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		loggedIn, _ := c.Get("loggedIn").(bool)
+		if !loggedIn {
+			return c.Redirect(http.StatusSeeOther, "/")
+		}
+		return next(c)
+	}
 }

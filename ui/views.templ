@@ -23,7 +23,7 @@ templ Base(content templ.Component, loggedIn bool, user *User) {
 			<link rel="stylesheet" href="/static/output.css"/>
 			<script src="/static/htmx.min.js"></script>
 		</head>
-		<body class="min-h-screen bg-base font-serif">
+		<body class="min-h-screen bg-base text-primary font-serif">
 			<div class="min-h-screen">
 				@Nav(loggedIn, user)
 				<main class="py-8">
@@ -46,9 +46,9 @@ func getHomeUrl(loggedIn bool) string {
 templ Nav(loggedIn bool, user *User) {
 	<nav class="navbar">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-			<div class="flex justify-between h-16">
+			<div class="flex justify-between items-center h-16">
 				<div class="flex items-center">
-					<a href={ getHomeUrl(loggedIn) } class="flex items-center text-xl font-bold nav-link">
+					<a href={ getHomeUrl(loggedIn) } class="flex items-center cursor-pointer text-xl font-bold nav-link">
 						<svg class="w-8 h-8 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
@@ -62,9 +62,9 @@ templ Nav(loggedIn bool, user *User) {
 				</div>
 				if loggedIn && user != nil {
 					<div class="flex w-full justify-end items-center gap-4">
-						<div class="relative">
+						<div class="relative h-10 px-6 py-2 form-input block w-56 rounded-md border border-border  sm:text-sm">
 							<input
-								class="h-10 px-6 py-2 form-input block w-56 rounded-md border border-border focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+								class="w-full h-full focus:outline-none focus:ring-blue-500 focus:border-blue-500"
 								type="search"
 								name="search"
 								placeholder="Search recipes..."
@@ -73,8 +73,11 @@ templ Nav(loggedIn bool, user *User) {
 								hx-target="#main-content"
 								hx-indicator="#search-loading"
 							/>
-							<div id="search-loading" class="htmx-indicator absolute r-0 t-0 b-0 w-4 h-4 z-10">
-								<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+							<div id="search-loading" class="htmx-indicator absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 z-10 pointer-events-none flex items-center justify-center">
+								<svg class="animate-spin h-5 w-5 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+								</svg>
 							</div>
 						</div>
 						<div class="h-10 flex justify-center items-center text-center  bg-accent text-light font-medium rounded-lg">
@@ -94,10 +97,10 @@ templ Nav(loggedIn bool, user *User) {
 						<!-- Avatar dropdown -->
 						<div class="relative">
 							<button id="user-menu-button" type="button" class="flex items-center focus:outline-none cursor-pointer" onclick="document.getElementById('user-menu-dropdown').classList.toggle('hidden')">
-								<img src={user.AvatarURL} alt="Profile" class="w-9 h-9 rounded-full border border-border shadow-sm" />
+								<img src={ user.AvatarURL } alt="Profile" class="w-9 h-9 rounded-full border border-border shadow-sm"/>
 							</button>
 							<div id="user-menu-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-border">
-								<div class="px-4 py-2 text-sm text-primary">{user.Name}</div>
+								<div class="px-4 py-2 text-sm text-primary">{ user.Name }</div>
 								<a href="#" class="block px-4 py-2 text-sm text-primary hover:bg-card">Account</a>
 								<form action="/logout" method="POST">
 									<button type="submit" class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card">Logout</button>
@@ -106,18 +109,13 @@ templ Nav(loggedIn bool, user *User) {
 						</div>
 					</div>
 				} else {
-					<div class="flex items-center space-x-8">
-						<a href="/" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Home</a>
-						<a href="/recipes" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Recipes</a>
-						<a href="/auth/github" class="nav-link px-3 py-2 rounded-md text-sm font-medium flex items-center">
-							<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-								<path
-									d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.262.82-.582 0-.288-.012-1.243-.018-2.252-3.338.726-4.042-1.415-4.042-1.415-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.606-2.665-.304-5.466-1.332-5.466-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.984-.399 3.003-.404 1.018.005 2.046.138 3.004.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.803 5.625-5.475 5.921.43.371.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.218.699.825.58C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z"
-								></path>
-							</svg>
-							Sign In with GitHub
+					<div class="h-10 flex justify-center items-center text-center text-primary font-medium rounded-lg">
+						<a
+							href="/signin"
+							class="font-medium cursor-pointer"
+						>
+							<span class="text-lg font-medium">Sign In</span>
 						</a>
-						<a href="/health" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Health</a>
 					</div>
 				}
 			</div>
@@ -137,25 +135,32 @@ templ Nav(loggedIn bool, user *User) {
 }
 
 templ Home() {
-	<div class="max-w-4xl mx-auto text-center">
-		<h1 class="text-4xl font-bold mb-4 text-primary">Welcome to DishDex</h1>
-		<p class="text-xl mb-8 text-secondary">Your personal library of recipes, made with ❤️ for my mom</p>
-		<div class="mt-12">
-			<h2 class="text-2xl font-semibold mb-6 text-primary">Get Started</h2>
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-				<a
-					href="/auth/github"
-					class="group block p-6 btn-primary rounded-lg shadow-md hover:shadow-lg flex items-center justify-center"
-				>
-					<svg class="w-8 h-8 mr-3" fill="currentColor" viewBox="0 0 24 24">
-						<path
-							d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.262.82-.582 0-.288-.012-1.243-.018-2.252-3.338.726-4.042-1.415-4.042-1.415-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.606-2.665-.304-5.466-1.332-5.466-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.984-.399 3.003-.404 1.018.005 2.046.138 3.004.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.803 5.625-5.475 5.921.43.371.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.218.699.825.58C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z"
-						></path>
-					</svg>
-					<span class="text-lg font-medium">Sign In with GitHub</span>
-				</a>
-			</div>
+	<div class="max-w-3xl mx-auto text-center py-20 px-12">
+		<div class="flex flex-col items-center mb-8">
+			<h1 class="text-5xl/16 font-extrabold mb-4 text-primary">
+			Your personal digital recipe book
+			</h1>
 		</div>
+		<div class=" text-secondary text-md">
+			<p>Made with ❤️ for my mom, and anyone who loves to cook.</p>
+		</div>
+		<div class="mt-16 flex justify-center">
+			<a href="/signin" class="inline-flex items-center px-8 py-4 bg-accent text-light rounded-lg font-semibold text-lg shadow hover:shadow-lg transition">
+				Get Started
+			</a>
+		</div>
+	</div>
+}
+
+templ SignInPage() {
+	<div class="max-w-md mx-auto mt-24 p-8 bg-card rounded-lg shadow-lg text-center">
+		<h1 class="text-3xl font-bold mb-6 text-primary">Sign In</h1>
+		<a href="/auth/github" class="inline-flex items-center px-6 py-3 border border-primary  text-primary rounded-lg font-medium text-lg hover:shadow-md hover transition">
+			<svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
+				<path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.262.82-.582 0-.288-.012-1.243-.018-2.252-3.338.726-4.042-1.415-4.042-1.415-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.606-2.665-.304-5.466-1.332-5.466-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.984-.399 3.003-.404 1.018.005 2.046.138 3.004.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.803 5.625-5.475 5.921.43.371.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.218.699.825.58C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z"/>
+			</svg>
+			Sign in with GitHub
+		</a>
 	</div>
 }
 
@@ -198,7 +203,7 @@ templ RecipesList(recipes []Recipe, tags []string, selectedTags []string) {
 
 templ RecipeCard(recipe Recipe) {
 	<div
-		class="rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden bg-card recipe-card"
+		class="rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden bg-card recipe-card"
 		id={ "recipe-" + recipe.ID }
 	>
 		<a
@@ -481,6 +486,11 @@ templ InstructionSteps() {
 				wrapper.appendChild(input);
 				stepsContainer.appendChild(wrapper);
 			});
+			// Add info text below the last step input
+			const info = document.createElement('div');
+			info.className = 'text-xs text-neutral-500 mt-1 ml-10';
+			info.textContent = 'Press [enter] to add another step';
+			stepsContainer.appendChild(info);
 			updateHiddenInput();
 		}
 
@@ -552,7 +562,6 @@ templ ShowRecipe(recipe RecipeDetail) {
 								d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
 							></path>
 						</svg>
-						Delete
 					</button>
 				</div>
 			</div>

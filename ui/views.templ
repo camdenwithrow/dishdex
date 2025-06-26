@@ -116,7 +116,10 @@ templ Nav(loggedIn bool, user *User) {
 				} else {
 					<div class="h-10 flex justify-center items-center text-center text-primary font-medium rounded-lg">
 						<a
-							href="/signin"
+							hx-get="/signin"
+							hx-target="#main-content"
+							hx-swap="innerHTML"
+							hx-push-url="true"
 							class="font-medium cursor-pointer"
 						>
 							<span class="text-lg font-medium">Sign In</span>
@@ -155,7 +158,13 @@ templ Home() {
 			<p>Made with ❤️ for my mom, and anyone who loves to cook.</p>
 		</div>
 		<div class="mt-16 flex justify-center">
-			<a href="/signin" class="inline-flex items-center px-8 py-4 bg-accent text-light rounded-lg font-semibold text-lg shadow hover:shadow-lg transition">
+			<a
+				hx-get="/signin"
+				hx-target="#main-content"
+				hx-swap="innerHTML"
+				hx-push-url="true"
+				class="inline-flex items-center px-8 py-4 bg-accent text-light rounded-lg font-semibold text-lg shadow hover:shadow-lg transition"
+			>
 				Get Started
 			</a>
 		</div>

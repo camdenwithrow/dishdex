@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -45,7 +44,6 @@ type Handler struct {
 	logger *slog.Logger
 }
 
-// Custom Echo logger that uses slog
 type EchoLogger struct {
 	logger *slog.Logger
 }
@@ -56,7 +54,6 @@ func (l *EchoLogger) Write(p []byte) (n int, err error) {
 }
 
 func main() {
-	// Setup structured logging
 	logger := setupLogger()
 	slog.SetDefault(logger)
 
@@ -65,7 +62,7 @@ func main() {
 	db, err := initDB()
 	if err != nil {
 		logger.Error("Failed to connect to database", "error", err)
-		log.Fatal("Failed to connect to db ", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
@@ -73,7 +70,7 @@ func main() {
 
 	e := echo.New()
 
-	// Disable Echo's default logger and use our custom one
+	// Disable Echo's default logger
 	e.Logger.SetOutput(io.Discard)
 	e.Logger.SetLevel(0) // Disable all Echo logging levels
 
@@ -105,19 +102,18 @@ func main() {
 
 	e.Static("/static", "ui/static")
 
-	// --- Auth Routes ---
+	// Auth Routes
 	e.GET("/auth/:provider", handler.beginAuth)
 	e.GET("/auth/:provider/callback", handler.authCallback)
 	e.POST("/logout", handler.logout)
-	// Routes
 	e.GET("/", home)
 	e.GET("/signin", signIn)
 	e.GET("/health", health)
 	e.GET("/complete-profile", handler.completeProfileForm)
 	e.POST("/complete-profile", handler.completeProfileSubmit)
 
+	// Routes
 	recipes := e.Group("/recipes", requireLogin)
-
 	recipes.GET("", handler.listRecipes)
 	recipes.GET("/new", handler.showAddRecipeForm)
 	recipes.POST("", handler.createRecipe)
@@ -132,7 +128,6 @@ func main() {
 }
 
 func setupLogger() *slog.Logger {
-	// Determine log level from environment
 	logLevel := slog.LevelInfo
 	if levelStr := os.Getenv("LOG_LEVEL"); levelStr != "" {
 		switch strings.ToUpper(levelStr) {
@@ -147,27 +142,22 @@ func setupLogger() *slog.Logger {
 		}
 	}
 
-	// Create logger options
 	opts := &slog.HandlerOptions{
 		Level:     logLevel,
 		AddSource: false, // Disable source info for cleaner logs
 	}
 
-	// Use JSON format in production, clean text format in development
 	var handler slog.Handler
 	if os.Getenv("ENV") == "production" {
 		handler = slog.NewJSONHandler(os.Stdout, opts)
 	} else {
-		// Custom development handler for cleaner output
 		handler = &DevHandler{
 			opts: opts,
 		}
 	}
-
 	return slog.New(handler)
 }
 
-// DevHandler provides cleaner development logging
 type DevHandler struct {
 	opts *slog.HandlerOptions
 }
@@ -185,9 +175,7 @@ func (h *DevHandler) WithGroup(name string) slog.Handler {
 }
 
 func (h *DevHandler) Handle(ctx context.Context, r slog.Record) error {
-	// Skip certain verbose logs in development
 	if r.Level == slog.LevelDebug {
-		// Only show debug logs for important operations
 		msg := r.Message
 		if !strings.Contains(msg, "User authenticated") &&
 			!strings.Contains(msg, "User not authenticated") &&
@@ -196,13 +184,9 @@ func (h *DevHandler) Handle(ctx context.Context, r slog.Record) error {
 		}
 	}
 
-	// Format the log entry
 	var parts []string
-
-	// Add timestamp (simplified)
 	parts = append(parts, r.Time.Format("15:04:05"))
 
-	// Add level (colored)
 	levelStr := strings.ToUpper(r.Level.String())
 	switch r.Level {
 	case slog.LevelError:
@@ -215,20 +199,15 @@ func (h *DevHandler) Handle(ctx context.Context, r slog.Record) error {
 		levelStr = "\033[37m" + levelStr + "\033[0m" // Gray
 	}
 	parts = append(parts, levelStr)
-
-	// Add message
 	parts = append(parts, r.Message)
 
-	// Add key attributes (filtered for cleanliness)
 	if r.NumAttrs() > 0 {
 		var attrs []string
 		r.Attrs(func(a slog.Attr) bool {
-			// Skip verbose attributes in development
 			if a.Key == "user_agent" || a.Key == "remote_addr" || a.Key == "size" {
 				return true
 			}
 
-			// Format the attribute
 			value := a.Value.String()
 			if a.Value.Kind() == slog.KindString && len(value) > 50 {
 				value = value[:47] + "..."
@@ -242,7 +221,6 @@ func (h *DevHandler) Handle(ctx context.Context, r slog.Record) error {
 		}
 	}
 
-	// Write to stdout
 	fmt.Println(strings.Join(parts, " "))
 	return nil
 }
@@ -251,12 +229,10 @@ func (h *Handler) requestLoggerMiddleware(next echo.HandlerFunc) echo.HandlerFun
 	return func(c echo.Context) error {
 		start := time.Now()
 
-		// Get request details
 		req := c.Request()
 		path := req.URL.Path
 		method := req.Method
 
-		// Check if it's an HTMX request
 		isHtmx := isHtmxReq(c)
 
 		// Only log non-static requests and non-health checks
@@ -264,18 +240,11 @@ func (h *Handler) requestLoggerMiddleware(next echo.HandlerFunc) echo.HandlerFun
 			h.logger.Debug("Request started", "method", method, "path", path, "htmx", isHtmx)
 		}
 
-		// Process request
 		err := next(c)
-
-		// Calculate duration
 		duration := time.Since(start)
-
-		// Get response details
 		status := c.Response().Status
 
-		// Only log non-static requests and non-health checks
 		if !strings.HasPrefix(path, "/static") && path != "/health" {
-			// Determine log level based on status code
 			logLevel := slog.LevelInfo
 			if status >= 400 {
 				logLevel = slog.LevelWarn
@@ -284,7 +253,6 @@ func (h *Handler) requestLoggerMiddleware(next echo.HandlerFunc) echo.HandlerFun
 				logLevel = slog.LevelError
 			}
 
-			// Log request completion with minimal info
 			h.logger.Log(context.Background(), logLevel, "Request completed",
 				"method", method,
 				"path", path,
@@ -293,7 +261,6 @@ func (h *Handler) requestLoggerMiddleware(next echo.HandlerFunc) echo.HandlerFun
 				"htmx", isHtmx,
 			)
 		}
-
 		return err
 	}
 }
@@ -889,7 +856,7 @@ func (h *Handler) completeProfileForm(c echo.Context) error {
 	if os.Getenv("LOG_LEVEL") == "DEBUG" {
 		h.logger.Debug("Profile completion form accessed", "user_id", userID)
 	}
-	return render(c, ui.CompleteProfileForm())
+	return render(c, ui.Base(ui.CompleteProfileForm(), false, nil))
 }
 
 func (h *Handler) completeProfileSubmit(c echo.Context) error {

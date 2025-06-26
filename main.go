@@ -26,7 +26,53 @@ import (
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
-var PORT = "4444"
+// Configuration
+type Config struct {
+	Port               string
+	Env                string
+	LogLevel           string
+	SessionSecret      string
+	GitHubClientID     string
+	GitHubClientSecret string
+	GoogleClientID     string
+	GoogleClientSecret string
+	DatabaseURL        string
+	BaseURL            string
+}
+
+func loadConfig() *Config {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	env := os.Getenv("ENV")
+	if env == "" {
+		env = "development"
+	}
+
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		if env == "production" {
+			baseURL = "https://yourdomain.com" // Update this for production
+		} else {
+			baseURL = "http://localhost:" + port
+		}
+	}
+
+	return &Config{
+		Port:               port,
+		Env:                env,
+		LogLevel:           os.Getenv("LOG_LEVEL"),
+		SessionSecret:      os.Getenv("SESSION_SECRET"),
+		GitHubClientID:     os.Getenv("GITHUB_CLIENT_ID"),
+		GitHubClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
+		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		DatabaseURL:        os.Getenv("DATABASE_URL"),
+		BaseURL:            baseURL,
+	}
+}
 
 type Recipe struct {
 	ID           string `json:"id"`
@@ -54,12 +100,31 @@ func (l *EchoLogger) Write(p []byte) (n int, err error) {
 }
 
 func main() {
-	logger := setupLogger()
+	config := loadConfig()
+
+	logger := setupLogger(config)
 	slog.SetDefault(logger)
 
-	logger.Info("Starting DishDex application", "port", PORT)
+	logger.Info("Starting DishDex application",
+		"port", config.Port,
+		"env", config.Env,
+		"base_url", config.BaseURL)
 
-	db, err := initDB()
+	// Validate required configuration
+	if config.Env == "production" {
+		if config.SessionSecret == "" || config.SessionSecret == "dev_secret_key" {
+			logger.Error("SESSION_SECRET is required in production")
+			os.Exit(1)
+		}
+		if config.GitHubClientID == "" || config.GitHubClientSecret == "" {
+			logger.Warn("GitHub OAuth credentials not configured")
+		}
+		if config.GoogleClientID == "" || config.GoogleClientSecret == "" {
+			logger.Warn("Google OAuth credentials not configured")
+		}
+	}
+
+	db, err := initDB(config)
 	if err != nil {
 		logger.Error("Failed to connect to database", "error", err)
 		os.Exit(1)
@@ -75,30 +140,56 @@ func main() {
 	e.Logger.SetLevel(0) // Disable all Echo logging levels
 
 	// --- Auth Setup ---
-	key := os.Getenv("SESSION_SECRET")
-	if key == "" {
-		key = "dev_secret_key"
+	sessionSecret := config.SessionSecret
+	if sessionSecret == "" {
+		sessionSecret = "dev_secret_key"
 		logger.Warn("Using default session secret - not recommended for production")
 	}
-	store := sessions.NewCookieStore([]byte(key))
-	store.MaxAge(86400 * 30)
+
+	store := sessions.NewCookieStore([]byte(sessionSecret))
+	store.MaxAge(86400 * 30) // 30 days
 	store.Options.Path = "/"
 	store.Options.HttpOnly = true
-	store.Options.Secure = false // set true in prod
+	store.Options.Secure = config.Env == "production" // HTTPS only in production
+	store.Options.SameSite = http.SameSiteLaxMode
 	gothic.Store = store
 
 	handler := &Handler{db: db, store: store, logger: logger}
 
-	goth.UseProviders(
-		github.New(os.Getenv("GITHUB_CLIENT_ID"), os.Getenv("GITHUB_CLIENT_SECRET"), "http://localhost:"+PORT+"/auth/github/callback"),
-		google.New(os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), "http://localhost:"+PORT+"/auth/google/callback"),
-	)
+	// Setup OAuth providers with proper callback URLs
+	if config.GitHubClientID != "" && config.GitHubClientSecret != "" {
+		githubCallback := config.BaseURL + "/auth/github/callback"
+		goth.UseProviders(
+			github.New(config.GitHubClientID, config.GitHubClientSecret, githubCallback),
+		)
+		logger.Info("GitHub OAuth provider configured", "callback", githubCallback)
+	}
+
+	if config.GoogleClientID != "" && config.GoogleClientSecret != "" {
+		googleCallback := config.BaseURL + "/auth/google/callback"
+		goth.UseProviders(
+			google.New(config.GoogleClientID, config.GoogleClientSecret, googleCallback),
+		)
+		logger.Info("Google OAuth provider configured", "callback", googleCallback)
+	}
 
 	// Middleware
 	e.Use(handler.requestLoggerMiddleware)
 	e.Use(middleware.Recover())
-	e.Use(middleware.CORS())
+
+	// CORS configuration
+	corsConfig := middleware.CORSConfig{
+		AllowOrigins: []string{"*"}, // Configure appropriately for production
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+	}
+	e.Use(middleware.CORSWithConfig(corsConfig))
+
 	e.Use(handler.authSessionMiddleware)
+
+	// Security headers
+	e.Use(middleware.Secure())
+	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20))) // 20 requests per second
 
 	e.Static("/static", "ui/static")
 
@@ -123,13 +214,13 @@ func main() {
 	recipes.DELETE("/:id", handler.deleteRecipe)
 	recipes.GET("/:id/edit", handler.showEditRecipeForm)
 
-	logger.Info("Server starting", "port", PORT)
-	e.Logger.Fatal(e.Start(":" + PORT))
+	logger.Info("Server starting", "port", config.Port)
+	e.Logger.Fatal(e.Start(":" + config.Port))
 }
 
-func setupLogger() *slog.Logger {
+func setupLogger(config *Config) *slog.Logger {
 	logLevel := slog.LevelInfo
-	if levelStr := os.Getenv("LOG_LEVEL"); levelStr != "" {
+	if levelStr := config.LogLevel; levelStr != "" {
 		switch strings.ToUpper(levelStr) {
 		case "DEBUG":
 			logLevel = slog.LevelDebug
@@ -148,7 +239,7 @@ func setupLogger() *slog.Logger {
 	}
 
 	var handler slog.Handler
-	if os.Getenv("ENV") == "production" {
+	if config.Env == "production" {
 		handler = slog.NewJSONHandler(os.Stdout, opts)
 	} else {
 		handler = &DevHandler{
@@ -265,26 +356,41 @@ func (h *Handler) requestLoggerMiddleware(next echo.HandlerFunc) echo.HandlerFun
 	}
 }
 
-func initDB() (*sql.DB, error) {
-	dbUrl := os.Getenv("TURSO_DATABASE_URL")
+func initDB(config *Config) (*sql.DB, error) {
+	dbUrl := config.DatabaseURL
 	dbToken := os.Getenv("TURSO_AUTH_TOKEN")
 	var db *sql.DB
 	var err error
-	if dbUrl != "" && dbToken != "" {
+
+	// If no database URL is provided, use local SQLite
+	if dbUrl == "" {
+		dbUrl = "dishdex.db"
+	}
+
+	// Check if it's a Turso database URL (contains libsql://)
+	if strings.Contains(dbUrl, "libsql://") {
+		if dbToken == "" {
+			return nil, fmt.Errorf("TURSO_AUTH_TOKEN is required for Turso database")
+		}
 		dbUrlFull := dbUrl + "?authToken=" + dbToken
 		db, err = sql.Open("libsql", dbUrlFull)
 		slog.Info("Connecting to Turso database", "url", dbUrl)
 	} else {
-		db, err = sql.Open("sqlite3", "dishdex.db")
-		slog.Info("Connecting to local SQLite database", "file", "dishdex.db")
+		// Local SQLite database
+		db, err = sql.Open("sqlite3", dbUrl)
+		slog.Info("Connecting to local SQLite database", "file", dbUrl)
 	}
+
 	if err != nil {
 		return nil, err
 	}
+
+	// Test the connection
 	if err := db.Ping(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("database ping failed: %w", err)
 	}
 
+	// Create tables if they don't exist
 	createRecipesTable := `
 	CREATE TABLE IF NOT EXISTS recipes (
 		id TEXT PRIMARY KEY,
@@ -300,7 +406,7 @@ func initDB() (*sql.DB, error) {
 	`
 	_, err = db.Exec(createRecipesTable)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create recipes table: %w", err)
 	}
 
 	createUsersTable := `
@@ -313,7 +419,7 @@ func initDB() (*sql.DB, error) {
 	`
 	_, err = db.Exec(createUsersTable)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create users table: %w", err)
 	}
 
 	slog.Info("Database tables initialized successfully")
@@ -321,12 +427,19 @@ func initDB() (*sql.DB, error) {
 }
 
 func health(c echo.Context) error {
-	// Only log health checks in debug mode
-	if os.Getenv("LOG_LEVEL") == "DEBUG" {
+	// Get config from context or use default
+	config := c.Get("config")
+	if config != nil {
+		if cfg, ok := config.(*Config); ok && cfg.LogLevel == "DEBUG" {
+			slog.Debug("Health check requested")
+		}
+	} else if os.Getenv("LOG_LEVEL") == "DEBUG" {
 		slog.Debug("Health check requested")
 	}
+
 	return c.JSON(http.StatusOK, map[string]any{
-		"status": "healthy",
+		"status":    "healthy",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
 }
 

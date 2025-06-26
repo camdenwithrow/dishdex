@@ -1,3 +1,31 @@
 tmp/
 node_modules/
 .env
+.env.local
+.env.*.local
+
+# Build artifacts
+dishdex
+*.db
+*.db-*
+data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Backup files
+*_backup_*.db
+backup/
+

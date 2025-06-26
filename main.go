@@ -3,10 +3,14 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/a-h/templ"
 	"github.com/camdenwithrow/dishdex/ui"
@@ -18,6 +22,7 @@ import (
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/github"
+	"github.com/markbates/goth/providers/google"
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
@@ -35,30 +40,48 @@ type Recipe struct {
 }
 
 type Handler struct {
-	db    *sql.DB
-	store *sessions.CookieStore
+	db     *sql.DB
+	store  *sessions.CookieStore
+	logger *slog.Logger
+}
+
+// Custom Echo logger that uses slog
+type EchoLogger struct {
+	logger *slog.Logger
+}
+
+func (l *EchoLogger) Write(p []byte) (n int, err error) {
+	l.logger.Info("echo", "message", string(p))
+	return len(p), nil
 }
 
 func main() {
+	// Setup structured logging
+	logger := setupLogger()
+	slog.SetDefault(logger)
+
+	logger.Info("Starting DishDex application", "port", PORT)
+
 	db, err := initDB()
 	if err != nil {
+		logger.Error("Failed to connect to database", "error", err)
 		log.Fatal("Failed to connect to db ", err)
 	}
 	defer db.Close()
 
+	logger.Info("Database connection established")
+
 	e := echo.New()
 
-	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.CORS())
-
-	e.Static("/static", "ui/static")
+	// Disable Echo's default logger and use our custom one
+	e.Logger.SetOutput(io.Discard)
+	e.Logger.SetLevel(0) // Disable all Echo logging levels
 
 	// --- Auth Setup ---
 	key := os.Getenv("SESSION_SECRET")
 	if key == "" {
-		key = "dev_secret_key" // fallback for dev
+		key = "dev_secret_key"
+		logger.Warn("Using default session secret - not recommended for production")
 	}
 	store := sessions.NewCookieStore([]byte(key))
 	store.MaxAge(86400 * 30)
@@ -67,18 +90,20 @@ func main() {
 	store.Options.Secure = false // set true in prod
 	gothic.Store = store
 
-	handler := &Handler{db: db, store: store}
+	handler := &Handler{db: db, store: store, logger: logger}
 
 	goth.UseProviders(
-		github.New(
-			os.Getenv("GITHUB_CLIENT_ID"),
-			os.Getenv("GITHUB_CLIENT_SECRET"),
-			"http://localhost:"+PORT+"/auth/github/callback",
-		),
+		github.New(os.Getenv("GITHUB_CLIENT_ID"), os.Getenv("GITHUB_CLIENT_SECRET"), "http://localhost:"+PORT+"/auth/github/callback"),
+		google.New(os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), "http://localhost:"+PORT+"/auth/google/callback"),
 	)
 
-	// --- Helper Middleware to set login state ---
+	// Middleware
+	e.Use(handler.requestLoggerMiddleware)
+	e.Use(middleware.Recover())
+	e.Use(middleware.CORS())
 	e.Use(handler.authSessionMiddleware)
+
+	e.Static("/static", "ui/static")
 
 	// --- Auth Routes ---
 	e.GET("/auth/:provider", handler.beginAuth)
@@ -88,6 +113,8 @@ func main() {
 	e.GET("/", home)
 	e.GET("/signin", signIn)
 	e.GET("/health", health)
+	e.GET("/complete-profile", handler.completeProfileForm)
+	e.POST("/complete-profile", handler.completeProfileSubmit)
 
 	recipes := e.Group("/recipes", requireLogin)
 
@@ -100,11 +127,178 @@ func main() {
 	recipes.DELETE("/:id", handler.deleteRecipe)
 	recipes.GET("/:id/edit", handler.showEditRecipeForm)
 
+	logger.Info("Server starting", "port", PORT)
 	e.Logger.Fatal(e.Start(":" + PORT))
 }
 
+func setupLogger() *slog.Logger {
+	// Determine log level from environment
+	logLevel := slog.LevelInfo
+	if levelStr := os.Getenv("LOG_LEVEL"); levelStr != "" {
+		switch strings.ToUpper(levelStr) {
+		case "DEBUG":
+			logLevel = slog.LevelDebug
+		case "INFO":
+			logLevel = slog.LevelInfo
+		case "WARN":
+			logLevel = slog.LevelWarn
+		case "ERROR":
+			logLevel = slog.LevelError
+		}
+	}
+
+	// Create logger options
+	opts := &slog.HandlerOptions{
+		Level:     logLevel,
+		AddSource: false, // Disable source info for cleaner logs
+	}
+
+	// Use JSON format in production, clean text format in development
+	var handler slog.Handler
+	if os.Getenv("ENV") == "production" {
+		handler = slog.NewJSONHandler(os.Stdout, opts)
+	} else {
+		// Custom development handler for cleaner output
+		handler = &DevHandler{
+			opts: opts,
+		}
+	}
+
+	return slog.New(handler)
+}
+
+// DevHandler provides cleaner development logging
+type DevHandler struct {
+	opts *slog.HandlerOptions
+}
+
+func (h *DevHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return level >= h.opts.Level.Level()
+}
+
+func (h *DevHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return h
+}
+
+func (h *DevHandler) WithGroup(name string) slog.Handler {
+	return h
+}
+
+func (h *DevHandler) Handle(ctx context.Context, r slog.Record) error {
+	// Skip certain verbose logs in development
+	if r.Level == slog.LevelDebug {
+		// Only show debug logs for important operations
+		msg := r.Message
+		if !strings.Contains(msg, "User authenticated") &&
+			!strings.Contains(msg, "User not authenticated") &&
+			!strings.Contains(msg, "Login required") {
+			return nil
+		}
+	}
+
+	// Format the log entry
+	var parts []string
+
+	// Add timestamp (simplified)
+	parts = append(parts, r.Time.Format("15:04:05"))
+
+	// Add level (colored)
+	levelStr := strings.ToUpper(r.Level.String())
+	switch r.Level {
+	case slog.LevelError:
+		levelStr = "\033[31m" + levelStr + "\033[0m" // Red
+	case slog.LevelWarn:
+		levelStr = "\033[33m" + levelStr + "\033[0m" // Yellow
+	case slog.LevelInfo:
+		levelStr = "\033[36m" + levelStr + "\033[0m" // Cyan
+	case slog.LevelDebug:
+		levelStr = "\033[37m" + levelStr + "\033[0m" // Gray
+	}
+	parts = append(parts, levelStr)
+
+	// Add message
+	parts = append(parts, r.Message)
+
+	// Add key attributes (filtered for cleanliness)
+	if r.NumAttrs() > 0 {
+		var attrs []string
+		r.Attrs(func(a slog.Attr) bool {
+			// Skip verbose attributes in development
+			if a.Key == "user_agent" || a.Key == "remote_addr" || a.Key == "size" {
+				return true
+			}
+
+			// Format the attribute
+			value := a.Value.String()
+			if a.Value.Kind() == slog.KindString && len(value) > 50 {
+				value = value[:47] + "..."
+			}
+			attrs = append(attrs, a.Key+"="+value)
+			return true
+		})
+
+		if len(attrs) > 0 {
+			parts = append(parts, "("+strings.Join(attrs, ", ")+")")
+		}
+	}
+
+	// Write to stdout
+	fmt.Println(strings.Join(parts, " "))
+	return nil
+}
+
+func (h *Handler) requestLoggerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		start := time.Now()
+
+		// Get request details
+		req := c.Request()
+		path := req.URL.Path
+		method := req.Method
+
+		// Check if it's an HTMX request
+		isHtmx := isHtmxReq(c)
+
+		// Only log non-static requests and non-health checks
+		if !strings.HasPrefix(path, "/static") && path != "/health" {
+			h.logger.Debug("Request started", "method", method, "path", path, "htmx", isHtmx)
+		}
+
+		// Process request
+		err := next(c)
+
+		// Calculate duration
+		duration := time.Since(start)
+
+		// Get response details
+		status := c.Response().Status
+
+		// Only log non-static requests and non-health checks
+		if !strings.HasPrefix(path, "/static") && path != "/health" {
+			// Determine log level based on status code
+			logLevel := slog.LevelInfo
+			if status >= 400 {
+				logLevel = slog.LevelWarn
+			}
+			if status >= 500 {
+				logLevel = slog.LevelError
+			}
+
+			// Log request completion with minimal info
+			h.logger.Log(context.Background(), logLevel, "Request completed",
+				"method", method,
+				"path", path,
+				"status", status,
+				"duration", duration,
+				"htmx", isHtmx,
+			)
+		}
+
+		return err
+	}
+}
+
 func initDB() (*sql.DB, error) {
-	// Check for Turso env vars
 	dbUrl := os.Getenv("TURSO_DATABASE_URL")
 	dbToken := os.Getenv("TURSO_AUTH_TOKEN")
 	var db *sql.DB
@@ -112,8 +306,10 @@ func initDB() (*sql.DB, error) {
 	if dbUrl != "" && dbToken != "" {
 		dbUrlFull := dbUrl + "?authToken=" + dbToken
 		db, err = sql.Open("libsql", dbUrlFull)
+		slog.Info("Connecting to Turso database", "url", dbUrl)
 	} else {
 		db, err = sql.Open("sqlite3", "dishdex.db")
+		slog.Info("Connecting to local SQLite database", "file", "dishdex.db")
 	}
 	if err != nil {
 		return nil, err
@@ -125,12 +321,14 @@ func initDB() (*sql.DB, error) {
 	createRecipesTable := `
 	CREATE TABLE IF NOT EXISTS recipes (
 		id TEXT PRIMARY KEY,
+		user_id TEXT NOT NULL,
 		title TEXT NOT NULL,
 		description TEXT NULL,
 		cook_time TEXT NULL,
 		ingredients TEXT,
 		instructions TEXT,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (user_id) REFERENCES users(id)
 	);
 	`
 	_, err = db.Exec(createRecipesTable)
@@ -151,10 +349,15 @@ func initDB() (*sql.DB, error) {
 		return nil, err
 	}
 
+	slog.Info("Database tables initialized successfully")
 	return db, nil
 }
 
 func health(c echo.Context) error {
+	// Only log health checks in debug mode
+	if os.Getenv("LOG_LEVEL") == "DEBUG" {
+		slog.Debug("Health check requested")
+	}
 	return c.JSON(http.StatusOK, map[string]any{
 		"status": "healthy",
 	})
@@ -187,8 +390,14 @@ func (h *Handler) authSessionMiddleware(next echo.HandlerFunc) echo.HandlerFunc 
 	return func(c echo.Context) error {
 		sess, _ := h.store.Get(c.Request(), "auth-session")
 		if _, ok := sess.Values["user_id"]; ok {
+			userID := toString(sess.Values["user_id"])
+			userName := toString(sess.Values["name"])
 			c.Set("loggedIn", true)
-			c.Set("userName", sess.Values["name"])
+			c.Set("userName", userName)
+			// Only log authentication on first request or when debugging
+			if os.Getenv("LOG_LEVEL") == "DEBUG" {
+				h.logger.Debug("User authenticated", "user_id", userID, "name", userName)
+			}
 		} else {
 			c.Set("loggedIn", false)
 		}
@@ -198,6 +407,8 @@ func (h *Handler) authSessionMiddleware(next echo.HandlerFunc) echo.HandlerFunc 
 
 func (h *Handler) beginAuth(c echo.Context) error {
 	provider := c.Param("provider")
+	h.logger.Info("Starting OAuth authentication", "provider", provider)
+
 	ctx := context.WithValue(c.Request().Context(), gothic.ProviderParamKey, provider)
 	r := c.Request().WithContext(ctx)
 	gothic.BeginAuthHandler(c.Response().Writer, r)
@@ -207,31 +418,80 @@ func (h *Handler) beginAuth(c echo.Context) error {
 func (h *Handler) authCallback(c echo.Context) error {
 	user, err := gothic.CompleteUserAuth(c.Response().Writer, c.Request())
 	if err != nil {
+		h.logger.Error("OAuth authentication failed", "error", err)
 		return c.Redirect(http.StatusTemporaryRedirect, "/")
 	}
+
+	h.logger.Info("OAuth authentication successful",
+		"provider", user.Provider,
+		"user_id", user.UserID,
+		"name", user.Name,
+		"email", user.Email,
+	)
+
 	// Use NickName if Name is empty
 	name := user.Name
 	if name == "" {
 		name = user.NickName
 	}
-	// Save user info in DB (upsert)
-	_, err = h.db.Exec(`INSERT INTO users (id, name, email, avatar_url) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, email=excluded.email, avatar_url=excluded.avatar_url`,
-		user.UserID, name, user.Email, user.AvatarURL)
-	if err != nil {
-		log.Printf("Failed to upsert user: %v", err)
+
+	dbEmail := ""
+	if user.Email == "" {
+		// Try to get email from DB
+		row := h.db.QueryRow(`SELECT email FROM users WHERE id = ?`, user.UserID)
+		var emailFromDB sql.NullString
+		if err := row.Scan(&emailFromDB); err == nil && emailFromDB.Valid {
+			dbEmail = emailFromDB.String
+			h.logger.Debug("Retrieved email from database", "user_id", user.UserID, "email", dbEmail)
+		}
 	}
-	// Save user info in session
+
+	// Always upsert name and avatar, only update email if present
+	if user.Email != "" {
+		_, err = h.db.Exec(`INSERT INTO users (id, name, email, avatar_url) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, email=excluded.email, avatar_url=excluded.avatar_url`,
+			user.UserID, name, user.Email, user.AvatarURL)
+	} else {
+		_, err = h.db.Exec(`INSERT INTO users (id, name, avatar_url) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, avatar_url=excluded.avatar_url`,
+			user.UserID, name, user.AvatarURL)
+	}
+	if err != nil {
+		h.logger.Error("Failed to upsert user", "error", err, "user_id", user.UserID)
+	} else {
+		h.logger.Info("User upserted successfully", "user_id", user.UserID, "name", name)
+	}
+
 	sess, _ := h.store.Get(c.Request(), "auth-session")
 	sess.Values["user_id"] = user.UserID
 	sess.Values["name"] = name
-	sess.Values["email"] = user.Email
 	sess.Values["avatar_url"] = user.AvatarURL
+
+	finalEmail := user.Email
+	if finalEmail == "" {
+		finalEmail = dbEmail
+	}
+	if finalEmail != "" {
+		sess.Values["email"] = finalEmail
+	} else {
+		delete(sess.Values, "email")
+	}
 	sess.Save(c.Request(), c.Response().Writer)
+
+	if finalEmail == "" {
+		h.logger.Info("User needs to complete profile", "user_id", user.UserID)
+		return c.Redirect(http.StatusSeeOther, "/complete-profile")
+	}
+
+	h.logger.Info("User authentication completed", "user_id", user.UserID, "name", name)
 	return c.Redirect(http.StatusSeeOther, "/recipes")
 }
 
 func (h *Handler) logout(c echo.Context) error {
 	sess, _ := h.store.Get(c.Request(), "auth-session")
+	userID := toString(sess.Values["user_id"])
+	userName := toString(sess.Values["name"])
+
+	h.logger.Info("User logging out", "user_id", userID, "name", userName)
+
 	sess.Options.MaxAge = -1
 	sess.Save(c.Request(), c.Response().Writer)
 	gothic.Logout(c.Response().Writer, c.Request())
@@ -239,6 +499,13 @@ func (h *Handler) logout(c echo.Context) error {
 }
 
 func (h *Handler) createRecipe(c echo.Context) error {
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	userID := toString(sess.Values["user_id"])
+	if userID == "" {
+		h.logger.Warn("Unauthorized recipe creation attempt")
+		return c.String(http.StatusUnauthorized, "Not authenticated")
+	}
+
 	title := c.FormValue("title")
 	description := c.FormValue("description")
 	cookTime := c.FormValue("cookTime")
@@ -246,15 +513,19 @@ func (h *Handler) createRecipe(c echo.Context) error {
 	instructions := c.FormValue("instructions")
 
 	if title == "" || ingredients == "" || instructions == "" {
+		h.logger.Warn("Recipe creation failed - missing required fields", "user_id", userID, "title", title)
 		return c.String(http.StatusBadRequest, "Missing required fields")
 	}
 
 	id := uuid.New().String()
-	_, err := h.db.Exec(`INSERT INTO recipes (id, title, description, cook_time, ingredients, instructions) VALUES (?, ?, ?, ?, ?, ?)`,
-		id, title, nullIfEmpty(description), nullIfEmpty(cookTime), ingredients, instructions)
+	_, err := h.db.Exec(`INSERT INTO recipes (id, user_id, title, description, cook_time, ingredients, instructions) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		id, userID, title, nullIfEmpty(description), nullIfEmpty(cookTime), ingredients, instructions)
 	if err != nil {
+		h.logger.Error("Failed to create recipe", "error", err, "user_id", userID, "title", title)
 		return c.String(http.StatusInternalServerError, "Failed to create recipe")
 	}
+
+	h.logger.Info("Recipe created successfully", "recipe_id", id, "user_id", userID, "title", title)
 
 	if isHtmxReq(c) {
 		return h.listRecipes(c)
@@ -264,8 +535,16 @@ func (h *Handler) createRecipe(c echo.Context) error {
 }
 
 func (h *Handler) listRecipes(c echo.Context) error {
-	rows, err := h.db.Query(`SELECT id, title, description, cook_time, ingredients, instructions, created_at FROM recipes ORDER BY created_at DESC`)
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	userID := toString(sess.Values["user_id"])
+	if userID == "" {
+		h.logger.Warn("Unauthorized recipe list attempt")
+		return c.String(http.StatusUnauthorized, "Not authenticated")
+	}
+
+	rows, err := h.db.Query(`SELECT id, title, description, cook_time, ingredients, instructions, created_at FROM recipes WHERE user_id = ? ORDER BY created_at DESC`, userID)
 	if err != nil {
+		h.logger.Error("Failed to fetch recipes", "error", err, "user_id", userID)
 		return c.String(http.StatusInternalServerError, "Failed to fetch recipes")
 	}
 	defer rows.Close()
@@ -276,11 +555,17 @@ func (h *Handler) listRecipes(c echo.Context) error {
 		var r Recipe
 		var description, cookTime sql.NullString
 		if err := rows.Scan(&r.ID, &r.Title, &description, &cookTime, &r.Ingredients, &r.Instructions, &r.CreatedAt); err != nil {
+			h.logger.Error("Failed to parse recipe", "error", err, "user_id", userID)
 			return c.String(http.StatusInternalServerError, "Failed to parse recipe")
 		}
 		r.Description = nullStringToString(description)
 		r.CookTime = nullStringToString(cookTime)
 		recipes = append(recipes, r)
+	}
+
+	// Only log recipe count in debug mode
+	if os.Getenv("LOG_LEVEL") == "DEBUG" {
+		h.logger.Debug("Recipes fetched", "user_id", userID, "count", len(recipes))
 	}
 
 	// Convert []Recipe to []ui.Recipe for the template
@@ -294,14 +579,13 @@ func (h *Handler) listRecipes(c echo.Context) error {
 		}
 	}
 
-	sess, _ := h.store.Get(c.Request(), "auth-session")
 	user := &ui.User{
 		ID:        toString(sess.Values["user_id"]),
 		Name:      toString(sess.Values["name"]),
 		Email:     toString(sess.Values["email"]),
 		AvatarURL: toString(sess.Values["avatar_url"]),
 	}
-	loggedIn := user.Name != ""
+	loggedIn := user.Email != ""
 	if isHtmxReq(c) {
 		return render(c, ui.RecipesList(tRecipes, []string{}, []string{}))
 	}
@@ -309,19 +593,30 @@ func (h *Handler) listRecipes(c echo.Context) error {
 }
 
 func (h *Handler) getRecipe(c echo.Context) error {
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	userID := toString(sess.Values["user_id"])
+	if userID == "" {
+		h.logger.Warn("Unauthorized recipe access attempt")
+		return c.String(http.StatusUnauthorized, "Not authenticated")
+	}
+
 	id := c.Param("id")
 	var r Recipe
 	var description, cookTime sql.NullString
-	err := h.db.QueryRow(`SELECT id, title, description, cook_time, ingredients, instructions, created_at FROM recipes WHERE id = ?`, id).
+	err := h.db.QueryRow(`SELECT id, title, description, cook_time, ingredients, instructions, created_at FROM recipes WHERE id = ? AND user_id = ?`, id, userID).
 		Scan(&r.ID, &r.Title, &description, &cookTime, &r.Ingredients, &r.Instructions, &r.CreatedAt)
 	if err == sql.ErrNoRows {
+		h.logger.Warn("Recipe not found", "recipe_id", id, "user_id", userID)
 		return c.String(http.StatusNotFound, "Recipe not found")
 	} else if err != nil {
+		h.logger.Error("Failed to fetch recipe", "error", err, "recipe_id", id, "user_id", userID)
 		return c.String(http.StatusInternalServerError, "Failed to fetch recipe")
 	}
 
 	r.Description = nullStringToString(description)
 	r.CookTime = nullStringToString(cookTime)
+
+	h.logger.Debug("Recipe fetched", "recipe_id", id, "user_id", userID, "title", r.Title)
 
 	recipeDetail := ui.RecipeDetail{
 		ID:           r.ID,
@@ -333,7 +628,6 @@ func (h *Handler) getRecipe(c echo.Context) error {
 		CreatedAt:    r.CreatedAt,
 	}
 
-	sess, _ := h.store.Get(c.Request(), "auth-session")
 	user := &ui.User{
 		ID:        toString(sess.Values["user_id"]),
 		Name:      toString(sess.Values["name"]),
@@ -348,6 +642,13 @@ func (h *Handler) getRecipe(c echo.Context) error {
 }
 
 func (h *Handler) updateRecipe(c echo.Context) error {
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	userID := toString(sess.Values["user_id"])
+	if userID == "" {
+		h.logger.Warn("Unauthorized recipe update attempt")
+		return c.String(http.StatusUnauthorized, "Not authenticated")
+	}
+
 	id := c.Param("id")
 	title := c.FormValue("title")
 	description := c.FormValue("description")
@@ -356,32 +657,48 @@ func (h *Handler) updateRecipe(c echo.Context) error {
 	instructions := c.FormValue("instructions")
 
 	if title == "" || ingredients == "" || instructions == "" {
+		h.logger.Warn("Recipe update failed - missing required fields", "recipe_id", id, "user_id", userID)
 		return c.String(http.StatusBadRequest, "Missing required fields")
 	}
 
-	_, err := h.db.Exec(`UPDATE recipes SET title=?, description=?, cook_time=?, ingredients=?, instructions=? WHERE id=?`,
-		title, nullIfEmpty(description), nullIfEmpty(cookTime), ingredients, instructions, id)
+	_, err := h.db.Exec(`UPDATE recipes SET title=?, description=?, cook_time=?, ingredients=?, instructions=? WHERE id=? AND user_id=?`,
+		title, nullIfEmpty(description), nullIfEmpty(cookTime), ingredients, instructions, id, userID)
 	if err != nil {
+		h.logger.Error("Failed to update recipe", "error", err, "recipe_id", id, "user_id", userID)
 		return c.String(http.StatusInternalServerError, "Failed to update recipe")
 	}
+
+	h.logger.Info("Recipe updated successfully", "recipe_id", id, "user_id", userID, "title", title)
 	return c.Redirect(http.StatusSeeOther, "/recipes")
 }
 
 func (h *Handler) deleteRecipe(c echo.Context) error {
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	userID := toString(sess.Values["user_id"])
+	if userID == "" {
+		h.logger.Warn("Unauthorized recipe deletion attempt")
+		return c.String(http.StatusUnauthorized, "Not authenticated")
+	}
+
 	id := c.Param("id")
 
 	var exists int
-	err := h.db.QueryRow(`SELECT 1 FROM recipes WHERE id = ?`, id).Scan(&exists)
+	err := h.db.QueryRow(`SELECT 1 FROM recipes WHERE id = ? AND user_id = ?`, id, userID).Scan(&exists)
 	if err == sql.ErrNoRows {
+		h.logger.Warn("Recipe not found for deletion", "recipe_id", id, "user_id", userID)
 		return c.String(http.StatusNotFound, "Recipe not found")
 	} else if err != nil {
+		h.logger.Error("Failed to check recipe existence", "error", err, "recipe_id", id, "user_id", userID)
 		return c.String(http.StatusInternalServerError, "Failed to check recipe")
 	}
 
-	_, err = h.db.Exec(`DELETE FROM recipes WHERE id = ?`, id)
+	_, err = h.db.Exec(`DELETE FROM recipes WHERE id = ? AND user_id = ?`, id, userID)
 	if err != nil {
+		h.logger.Error("Failed to delete recipe", "error", err, "recipe_id", id, "user_id", userID)
 		return c.String(http.StatusInternalServerError, "Failed to delete recipe")
 	}
+
+	h.logger.Info("Recipe deleted successfully", "recipe_id", id, "user_id", userID)
 
 	if isHtmxReq(c) {
 		c.Response().Header().Set("HX-Push-Url", "/recipes")
@@ -392,15 +709,28 @@ func (h *Handler) deleteRecipe(c echo.Context) error {
 }
 
 func (h *Handler) searchRecipes(c echo.Context) error {
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	userID := toString(sess.Values["user_id"])
+	if userID == "" {
+		h.logger.Warn("Unauthorized recipe search attempt")
+		return c.String(http.StatusUnauthorized, "Not authenticated")
+	}
+
 	query := c.FormValue("search")
 
 	if query == "" {
 		return h.listRecipes(c)
 	}
 
+	// Only log search queries in debug mode
+	if os.Getenv("LOG_LEVEL") == "DEBUG" {
+		h.logger.Debug("Searching recipes", "user_id", userID, "query", query)
+	}
+
 	searchPattern := "%" + strings.ReplaceAll(strings.ReplaceAll(query, "%", "\\%"), "_", "\\_") + "%"
-	rows, err := h.db.Query(`SELECT id, title, description, cook_time, ingredients, instructions, created_at FROM recipes WHERE title LIKE ? OR description LIKE ? ORDER BY created_at DESC`, searchPattern, searchPattern)
+	rows, err := h.db.Query(`SELECT id, title, description, cook_time, ingredients, instructions, created_at FROM recipes WHERE user_id = ? AND (title LIKE ? OR description LIKE ?) ORDER BY created_at DESC`, userID, searchPattern, searchPattern)
 	if err != nil {
+		h.logger.Error("Failed to search recipes", "error", err, "user_id", userID, "query", query)
 		return c.String(http.StatusInternalServerError, "Failed to search recipes")
 	}
 	defer rows.Close()
@@ -411,11 +741,17 @@ func (h *Handler) searchRecipes(c echo.Context) error {
 		var r Recipe
 		var description, cookTime sql.NullString
 		if err := rows.Scan(&r.ID, &r.Title, &description, &cookTime, &r.Ingredients, &r.Instructions, &r.CreatedAt); err != nil {
+			h.logger.Error("Failed to parse recipe during search", "error", err, "user_id", userID)
 			return c.String(http.StatusInternalServerError, "Failed to parse recipe")
 		}
 		r.Description = nullStringToString(description)
 		r.CookTime = nullStringToString(cookTime)
 		recipes = append(recipes, r)
+	}
+
+	// Only log search results in debug mode
+	if os.Getenv("LOG_LEVEL") == "DEBUG" {
+		h.logger.Debug("Search completed", "user_id", userID, "query", query, "results", len(recipes))
 	}
 
 	// Convert []Recipe to []ui.Recipe for the template
@@ -429,7 +765,6 @@ func (h *Handler) searchRecipes(c echo.Context) error {
 		}
 	}
 
-	sess, _ := h.store.Get(c.Request(), "auth-session")
 	user := &ui.User{
 		ID:        toString(sess.Values["user_id"]),
 		Name:      toString(sess.Values["name"]),
@@ -459,14 +794,23 @@ func (h *Handler) showAddRecipeForm(c echo.Context) error {
 }
 
 func (h *Handler) showEditRecipeForm(c echo.Context) error {
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	userID := toString(sess.Values["user_id"])
+	if userID == "" {
+		h.logger.Warn("Unauthorized recipe edit form access attempt")
+		return c.String(http.StatusUnauthorized, "Not authenticated")
+	}
+
 	id := c.Param("id")
 	var r Recipe
 	var description, cookTime sql.NullString
-	err := h.db.QueryRow(`SELECT id, title, description, cook_time, ingredients, instructions, created_at FROM recipes WHERE id = ?`, id).
+	err := h.db.QueryRow(`SELECT id, title, description, cook_time, ingredients, instructions, created_at FROM recipes WHERE id = ? AND user_id = ?`, id, userID).
 		Scan(&r.ID, &r.Title, &description, &cookTime, &r.Ingredients, &r.Instructions, &r.CreatedAt)
 	if err == sql.ErrNoRows {
+		h.logger.Warn("Recipe not found for edit", "recipe_id", id, "user_id", userID)
 		return c.String(http.StatusNotFound, "Recipe not found")
 	} else if err != nil {
+		h.logger.Error("Failed to fetch recipe for edit", "error", err, "recipe_id", id, "user_id", userID)
 		return c.String(http.StatusInternalServerError, "Failed to fetch recipe")
 	}
 
@@ -483,7 +827,6 @@ func (h *Handler) showEditRecipeForm(c echo.Context) error {
 		CreatedAt:    r.CreatedAt,
 	}
 
-	sess, _ := h.store.Get(c.Request(), "auth-session")
 	user := &ui.User{
 		ID:        toString(sess.Values["user_id"]),
 		Name:      toString(sess.Values["name"]),
@@ -527,8 +870,52 @@ func requireLogin(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		loggedIn, _ := c.Get("loggedIn").(bool)
 		if !loggedIn {
+			slog.Debug("Login required - redirecting to home")
 			return c.Redirect(http.StatusSeeOther, "/")
 		}
 		return next(c)
 	}
+}
+
+func (h *Handler) completeProfileForm(c echo.Context) error {
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	userID := toString(sess.Values["user_id"])
+	if userID == "" {
+		h.logger.Warn("Unauthorized profile completion form access")
+		return c.Redirect(http.StatusSeeOther, "/signin")
+	}
+
+	// Only log in debug mode
+	if os.Getenv("LOG_LEVEL") == "DEBUG" {
+		h.logger.Debug("Profile completion form accessed", "user_id", userID)
+	}
+	return render(c, ui.CompleteProfileForm())
+}
+
+func (h *Handler) completeProfileSubmit(c echo.Context) error {
+	sess, _ := h.store.Get(c.Request(), "auth-session")
+	userID := toString(sess.Values["user_id"])
+	if userID == "" {
+		h.logger.Warn("Unauthorized profile completion submission")
+		return c.Redirect(http.StatusSeeOther, "/signin")
+	}
+
+	email := c.FormValue("email")
+	if email == "" {
+		h.logger.Warn("Profile completion failed - email required", "user_id", userID)
+		return render(c, ui.CompleteProfileFormWithError("Email is required"))
+	}
+
+	// Update user in DB
+	_, err := h.db.Exec(`UPDATE users SET email=? WHERE id=?`, email, userID)
+	if err != nil {
+		h.logger.Error("Failed to update user email", "error", err, "user_id", userID, "email", email)
+		return c.String(http.StatusInternalServerError, "Failed to update email")
+	}
+
+	h.logger.Info("User profile completed", "user_id", userID, "email", email)
+
+	sess.Values["email"] = email
+	sess.Save(c.Request(), c.Response().Writer)
+	return c.Redirect(http.StatusSeeOther, "/recipes")
 }

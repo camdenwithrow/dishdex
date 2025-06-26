@@ -463,7 +463,12 @@ func signIn(c echo.Context) error {
 	if loggedIn {
 		return c.Redirect(http.StatusSeeOther, "/recipes")
 	}
-	return render(c, ui.Base(ui.SignInPage(), false, nil))
+
+	prod := os.Getenv("ENV") == "production"
+	if isHtmxReq(c) {
+		return render(c, ui.SignInPage(prod))
+	}
+	return render(c, ui.Base(ui.SignInPage(prod), false, nil))
 }
 
 func (h *Handler) authSessionMiddleware(next echo.HandlerFunc) echo.HandlerFunc {

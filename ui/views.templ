@@ -21,6 +21,10 @@ templ Base(content templ.Component, loggedIn bool, user *User) {
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>DishDex</title>
 			<link rel="stylesheet" href="/static/output.css"/>
+			<link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png"/>
+			<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png"/>
+			<link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png"/>
+			<link rel="manifest" href="/static/favicon/site.webmanifest"/>
 			<script src="/static/htmx.min.js"></script>
 		</head>
 		<body class="min-h-screen bg-base text-primary font-serif">
@@ -100,8 +104,9 @@ templ Nav(loggedIn bool, user *User) {
 						if user != nil {
 							<!-- Avatar dropdown -->
 							<div class="relative">
-								<button id="user-menu-button" type="button" class="flex items-center focus:outline-none cursor-pointer" onclick="document.getElementById('user-menu-dropdown').classList.toggle('hidden')">
-									<img src={ user.AvatarURL } alt="Profile" class="w-9 h-9 rounded-full border border-border shadow-sm"/>
+								<button id="user-menu-button" type="button" class="p-2 flex items-center focus:outline-none cursor-pointer border border-accent rounded-full" onclick="document.getElementById('user-menu-dropdown').classList.toggle('hidden')">
+									<!-- Chef SVG avatar -->
+									<svg class="w-6 h-6" viewBox="0 0 1024 1024" fill="currentColor" version="1.1" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="M822.389086 679.867985m-100.717263 0a100.717263 100.717263 0 1 0 201.434526 0 100.717263 100.717263 0 1 0-201.434526 0Z" fill="#FDEDD5"></path><path d="M211.347504 679.867985m-100.717263 0a100.717263 100.717263 0 1 0 201.434526 0 100.717263 100.717263 0 1 0-201.434526 0Z" fill="#FAE1DC"></path><path d="M525.740586 650.940435m-337.71151 0a337.71151 337.71151 0 1 0 675.42302 0 337.71151 337.71151 0 1 0-675.42302 0Z" fill="#FAE1DC"></path><path d="M424.564716 787.887691l226.058221-4.586075s0.035278 116.909636-107.067213 116.944913c-111.018293 0.035278-118.991008-112.358838-118.991008-112.358838z" fill="#FFFFFF"></path><path d="M424.564716 787.852413s0.952493 9.419093 3.351362 19.085128h220.131602c2.328315-11.253523 2.575258-23.635925 2.575257-23.635925l-226.058221 4.550797zM543.626279 900.352362c39.546078 0 62.22951-16.545148 74.611913-29.668378l-158.748751-3.421918c15.627933 16.545148 42.19189 33.090295 84.136838 33.090296z" fill="#FFFFFF"></path><path d="M982.866435 202.351741c0-77.998553-71.260551-141.251111-159.136804-141.251111-41.34523 0-78.880491 14.111-107.173046 37.041376-25.96424-16.36876-57.608158-26.070073-91.897888-26.070073-39.828298 0-76.128846 13.052675-104.033348 34.501395-27.904503-21.44872-64.20505-34.501395-104.033348-34.501395-29.35088 0-56.72622 7.161333-80.326869 19.47318-27.09312-19.014573-61.277018-30.444483-98.49478-30.444483-87.876253 0-159.136804 63.252558-159.136804 141.251111 0 68.261963 54.539015 125.199848 127.069556 138.393634v209.513074h643.24994V341.627313c75.917181-10.759638 133.913391-68.932236 133.913391-139.275572z" fill="#BC6F35"></path></g></svg>
 								</button>
 								<div id="user-menu-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-border">
 									<div class="px-4 py-2 text-sm text-primary">{ user.Name }</div>
@@ -171,16 +176,18 @@ templ Home() {
 	</div>
 }
 
-templ SignInPage() {
+templ SignInPage(prod bool) {
 	<div class="max-w-md mx-auto mt-24 p-8 bg-card rounded-lg shadow-lg text-center">
 		<h1 class="text-3xl font-bold mb-6 text-primary">Sign In</h1>
 		<div class="space-y-4">
-			<a href="/auth/github" class="inline-flex items-center px-6 py-3 border border-primary text-primary rounded-lg font-medium text-lg hover:shadow-md hover transition w-full justify-center">
-				<svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
-					<path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.262.82-.582 0-.288-.012-1.243-.018-2.252-3.338.726-4.042-1.415-4.042-1.415-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.606-2.665-.304-5.466-1.332-5.466-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.984-.399 3.003-.404 1.018.005 2.046.138 3.004.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.803 5.625-5.475 5.921.43.371.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.218.699.825.58C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z"></path>
-				</svg>
-				Sign in with GitHub
-			</a>
+			if !prod {
+				<a href="/auth/github" class="inline-flex items-center px-6 py-3 border border-primary text-primary rounded-lg font-medium text-lg hover:shadow-md hover transition w-full justify-center">
+					<svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
+						<path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.262.82-.582 0-.288-.012-1.243-.018-2.252-3.338.726-4.042-1.415-4.042-1.415-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.606-2.665-.304-5.466-1.332-5.466-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.984-.399 3.003-.404 1.018.005 2.046.138 3.004.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.803 5.625-5.475 5.921.43.371.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.218.699.825.58C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z"></path>
+					</svg>
+					Sign in with GitHub
+				</a>
+			}
 			<a href="/auth/google" class="inline-flex items-center px-6 py-3 border border-primary text-primary rounded-lg font-medium text-lg hover:shadow-md hover transition w-full justify-center">
 				<svg class="w-6 h-6 mr-3" viewBox="0 0 24 24">
 					<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"></path>

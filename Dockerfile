@@ -1,8 +1,8 @@
 # Build stage
 FROM golang:1.24.4-alpine AS builder
 
-# Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata nodejs npm
+# Install build dependencies including C compiler
+RUN apk add --no-cache git ca-certificates tzdata nodejs npm build-base
 
 # Set working directory
 WORKDIR /app

@@ -29,7 +29,7 @@ RUN npx tailwindcss -i input.css -o static/output.css --minify
 
 # Build the application
 WORKDIR /app
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main .
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/app
 
 # Production stage
 FROM alpine:latest

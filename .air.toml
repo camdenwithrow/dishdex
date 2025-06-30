@@ -5,11 +5,11 @@ tmp_dir = "tmp"
 [build]
   args_bin = []
   bin = "./tmp/main"
-  cmd = "go build -o ./tmp/main ."
+  cmd = "go build -o ./tmp/main ./cmd/app"
   delay = 1000
   exclude_dir = ["assets", "tmp", "vendor", "testdata", "ui/node_modules"]
   exclude_file = []
-  exclude_regex = ["_test.go", "_templ.go"]
+  exclude_regex = ["_test.go", "_templ.go", "tmp/.*"]
   exclude_unchanged = false
   follow_symlink = false
   full_bin = ""
@@ -21,7 +21,7 @@ tmp_dir = "tmp"
   poll = false
   poll_interval = 0
   post_cmd = []
-  pre_cmd = ["templ generate", "npx @tailwindcss/cli -i ./ui/input.css -o ./ui/static/output.css"]
+  pre_cmd = ["templ generate"]
   rerun = false
   rerun_delay = 500
   send_interrupt = false
@@ -46,6 +46,7 @@ tmp_dir = "tmp"
   app_port = 4444
   enabled = true
   proxy_port = 4000
+  timeout = 30
 
 [screen]
   clear_on_rebuild = false

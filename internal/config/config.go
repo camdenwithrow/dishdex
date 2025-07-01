@@ -32,39 +32,41 @@ func LoadConfig() *Config {
 		return cfg
 	}
 	once.Do(func() {
+		if os.Getenv("ENV") != "production" {
 			err := godotenv.Load()
 			if err != nil {
 				log.Fatal("Failed to load config")
 			}
+		}
 
-			port := os.Getenv("PORT")
-			if port == "" {
-				port = "8080"
-			}
+		port := os.Getenv("PORT")
+		if port == "" {
+			port = "8080"
+		}
 
-			env := os.Getenv("ENV")
-			if env == "" {
-				env = "development"
-			}
+		env := os.Getenv("ENV")
+		if env == "" {
+			env = "development"
+		}
 
-			baseURL := os.Getenv("BASE_URL")
-			if baseURL == "" {
-				baseURL = "http://localhost:" + port
+		baseURL := os.Getenv("BASE_URL")
+		if baseURL == "" {
+			baseURL = "http://localhost:" + port
 
-			}
+		}
 
-			cfg = &Config{
-				Port:               port,
-				Env:                env,
-				LogLevel:           os.Getenv("LOG_LEVEL"),
-				SessionSecret:      os.Getenv("SESSION_SECRET"),
-				GitHubClientID:     os.Getenv("GITHUB_CLIENT_ID"),
-				GitHubClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
-				GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-				GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-				DatabaseURL:        os.Getenv("DATABASE_URL"),
-				BaseURL:            baseURL,
-			}
+		cfg = &Config{
+			Port:               port,
+			Env:                env,
+			LogLevel:           os.Getenv("LOG_LEVEL"),
+			SessionSecret:      os.Getenv("SESSION_SECRET"),
+			GitHubClientID:     os.Getenv("GITHUB_CLIENT_ID"),
+			GitHubClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
+			GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+			GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+			DatabaseURL:        os.Getenv("DATABASE_URL"),
+			BaseURL:            baseURL,
+		}
 	})
 	return cfg
 }

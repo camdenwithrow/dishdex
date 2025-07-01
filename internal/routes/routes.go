@@ -56,6 +56,6 @@ func SetupRoutes(e *echo.Echo, h *handlers.Handlers, a *auth.AuthService, log *l
 	recipes.POST("/new/url", h.ImportRecipeFromURLFormSubmit)
 
 	// Integration Routes
-	recipes.GET("/onetsp/login", h.LoginOneTsp)
-	recipes.GET("/onetsp/import", h.ImportOneTsp)
+	recipes.GET("/onetsp/login", h.LoginOneTspForm)
+	recipes.POST("/onetsp/login", h.LoginOneTspFormSubmit)
 }

@@ -462,13 +462,38 @@ func (h *Handlers) ImportRecipeFromURLFormSubmit(c echo.Context) error {
 }
 
 // Integration Routes
-func (h *Handlers) LoginOneTsp(c echo.Context) error {
+func (h *Handlers) LoginOneTspForm(c echo.Context) error {
 	user := auth.GetUserFromContext(c)
 	h.logger.Info("OneTsp login initiated", "user_id", user.ID)
 
-	// Implementation for OneTsp login
-	// This would typically involve redirecting to OneTsp's OAuth or API
-	return c.String(http.StatusOK, "OneTsp login functionality not yet implemented")
+	return defaultRender(c, templates.OneTspLoginDialog(), user)
+
+}
+
+func (h *Handlers) LoginOneTspFormSubmit(c echo.Context) error {
+	user := auth.GetUserFromContext(c)
+	email := c.FormValue("email")
+	password := c.FormValue("password")
+
+	h.logger.Info("OneTsp login form submitted", "user_id", user.ID, "email", email)
+
+	if email == "" || password == "" {
+		h.logger.Warn("OneTsp login failed - missing credentials", "user_id", user.ID)
+		return c.String(http.StatusBadRequest, "Email and password are required")
+	}
+
+
+
+	h.logger.Info("OneTsp authentication attempt", "user_id", user.ID, "email", email)
+
+	// Placeholder for actual OneTsp API integration
+	// In a real implementation, you would:
+	// 1. Make a POST request to OneTsp's login endpoint
+	// 2. Handle the response (success/failure)
+	// 3. Store the OneTsp session/token for future API calls
+	// 4. Return appropriate success/error response
+
+	return c.String(http.StatusOK, "OneTsp authentication successful (placeholder)")
 }
 
 func (h *Handlers) ImportOneTsp(c echo.Context) error {
@@ -508,10 +533,10 @@ func (h *Handlers) validateRecipeAccess(c echo.Context, recipeID string) (*model
 }
 
 func completeAuth(c echo.Context, user *goth.User, h *Handlers) error {
-	if user.Name == "" {
+	if user.Name == "" && user.NickName != "" {
 		user.Name = user.NickName
 	}
-	if user.Name == "" {
+	if user.Name == "" && user.FirstName != "" && user.LastName != "" {
 		user.Name = user.FirstName + " " + user.LastName
 	}
 

@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"sort"
 	"time"
 
 	"database/sql"
@@ -206,6 +207,9 @@ func (h *Handlers) ListRecipes(c echo.Context) error {
 		}
 		recipes = append(recipes, r)
 	}
+	sort.Slice(recipes, func(i, j int) bool {
+		return recipes[i].Title < recipes[j].Title
+	})
 
 	h.logger.Debug("Recipes fetched", "user_id", user.ID, "count", len(recipes))
 
@@ -682,7 +686,7 @@ func (h *Handlers) ImportOneTsp(c echo.Context) error {
 		if importedRecipe != nil {
 			// Use imported recipe data to enhance OneTsp data
 			if importedRecipe.Title != "" {
-				recipeTitle = importedRecipe.Title // Use imported title if available
+				recipeTitle = importedRecipe.Title 
 			}
 			if importedRecipe.CookTime != "" {
 				cookTime = importedRecipe.CookTime

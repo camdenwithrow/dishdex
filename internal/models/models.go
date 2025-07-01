@@ -20,6 +20,7 @@ type Recipe struct {
 	CreatedAt    string `json:"created_at"`
 	PhotoURL     string `json:"photo_url"`
 	OriginalURL  string `json:"original_url"`
+	Tags         string `json:"tags"`
 }
 
 type Session struct {

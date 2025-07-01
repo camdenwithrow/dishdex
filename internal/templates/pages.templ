@@ -230,6 +230,19 @@ templ Recipe(recipe *models.Recipe) {
 					<span class="font-medium">{ recipe.CookTime }</span>
 				</div>
 			}
+			if recipe.Tags != "" {
+				<div class="flex items-center text-accent mt-2">
+					<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+						></path>
+					</svg>
+					<span class="font-medium">{ recipe.Tags }</span>
+				</div>
+			}
 		</div>
 		<!-- Recipe Content -->
 		<div class="grid grid-cols-1 lg:grid-cols-6 gap-6">
@@ -323,7 +336,7 @@ templ AddRecipe() {
 			</div>
 		</div>
 		<form hx-post="/recipes" hx-target="#main-content" hx-swap="innerHTML" class="space-y-6" hx-push-url="true">
-			@RecipeFormFields("", "", "", "", "", "", "")
+			@RecipeFormFields("", "", "", "", "", "", "", "")
 			<div class="flex gap-4 pt-3">
 				<a
 					hx-get="/recipes"
@@ -365,7 +378,7 @@ templ AddRecipeFromValues(recipe *models.Recipe) {
 			</div>
 		</div>
 		<form hx-post="/recipes" hx-target="#main-content" hx-swap="innerHTML" class="space-y-6" hx-push-url="true">
-			@RecipeFormFields(recipe.Title, recipe.Description, recipe.CookTime, recipe.Servings, recipe.Ingredients, recipe.Instructions, recipe.PhotoURL)
+			@RecipeFormFields(recipe.Title, recipe.Description, recipe.CookTime, recipe.Servings, recipe.Ingredients, recipe.Instructions, recipe.PhotoURL, recipe.Tags)
 			<div class="flex gap-4 pt-3">
 				<a
 					hx-get="/recipes"
@@ -403,7 +416,7 @@ templ EditRecipe(recipe *models.Recipe) {
 			class="space-y-6"
 		>
 			<input type="hidden" name="_method" value="PUT"/>
-			@RecipeFormFields(recipe.Title, recipe.Description, recipe.CookTime, recipe.Servings, recipe.Ingredients, recipe.Instructions, recipe.PhotoURL)
+			@RecipeFormFields(recipe.Title, recipe.Description, recipe.CookTime, recipe.Servings, recipe.Ingredients, recipe.Instructions, recipe.PhotoURL, recipe.Tags)
 			<div class="flex gap-4 pt-3">
 				<a
 					href={ "/recipes/" + recipe.ID }

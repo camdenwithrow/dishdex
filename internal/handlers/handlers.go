@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -171,7 +172,7 @@ func (h *Handlers) ListRecipes(c echo.Context) error {
 	h.logger.Debug("Listing recipes for user", "user_id", user.ID)
 
 	rows, err := h.db.Query(`
-		SELECT id, title, description, cook_time, servings, ingredients, instructions, created_at, photo_url, original_url 
+		SELECT id, title, description, cook_time, servings, ingredients, instructions, created_at, photo_url, original_url, tags 
 		FROM recipes 
 		WHERE user_id = ? 
 		ORDER BY created_at DESC
@@ -186,9 +187,9 @@ func (h *Handlers) ListRecipes(c echo.Context) error {
 
 	for rows.Next() {
 		var r models.Recipe
-		var description, cookTime, servings, photoURL, originalURL sql.NullString
+		var description, cookTime, servings, photoURL, originalURL, tags sql.NullString
 		var createdAt sql.NullTime
-		if err := rows.Scan(&r.ID, &r.Title, &description, &cookTime, &servings, &r.Ingredients, &r.Instructions, &createdAt, &photoURL, &originalURL); err != nil {
+		if err := rows.Scan(&r.ID, &r.Title, &description, &cookTime, &servings, &r.Ingredients, &r.Instructions, &createdAt, &photoURL, &originalURL, &tags); err != nil {
 			h.logger.Error("Failed to parse recipe", "error", err, "user_id", user.ID)
 			return c.String(http.StatusInternalServerError, "Failed to parse recipe")
 		}
@@ -197,6 +198,7 @@ func (h *Handlers) ListRecipes(c echo.Context) error {
 		r.Servings = nullStringToString(servings)
 		r.PhotoURL = nullStringToString(photoURL)
 		r.OriginalURL = nullStringToString(originalURL)
+		r.Tags = nullStringToString(tags)
 		if createdAt.Valid {
 			r.CreatedAt = createdAt.Time.Format("2006-01-02 15:04:05")
 		} else {
@@ -220,14 +222,15 @@ func (h *Handlers) CreateRecipe(c echo.Context) error {
 	instructions := c.FormValue("instructions")
 	photoUrl := c.FormValue("photoUrl")
 	originalUrl := c.FormValue("originalUrl")
+	tags := c.FormValue("tags")
 
 	if title == "" {
 		return c.String(http.StatusBadRequest, "Title is required")
 	}
 
 	id := uuid.New().String()
-	_, err := h.db.Exec(`INSERT INTO recipes (id, user_id, title, description, cook_time, servings, ingredients, instructions, photo_url, original_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		id, user.ID, title, nullIfEmpty(description), nullIfEmpty(cookTime), nullIfEmpty(servings), ingredients, instructions, nullIfEmpty(photoUrl), nullIfEmpty(originalUrl))
+	_, err := h.db.Exec(`INSERT INTO recipes (id, user_id, title, description, cook_time, servings, ingredients, instructions, photo_url, original_url, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, user.ID, title, nullIfEmpty(description), nullIfEmpty(cookTime), nullIfEmpty(servings), ingredients, instructions, nullIfEmpty(photoUrl), nullIfEmpty(originalUrl), nullIfEmpty(tags))
 	if err != nil {
 		h.logger.Error("Failed to create recipe", "error", err, "user_id", user.ID, "title", title)
 		return c.String(http.StatusInternalServerError, "Failed to create recipe")
@@ -262,11 +265,11 @@ func (h *Handlers) SearchRecipes(c echo.Context) error {
 
 	searchQuery := "%" + query + "%"
 	rows, err := h.db.Query(`
-		SELECT id, title, description, cook_time, servings, ingredients, instructions, created_at, photo_url, original_url 
+		SELECT id, title, description, cook_time, servings, ingredients, instructions, created_at, photo_url, original_url, tags 
 		FROM recipes 
-		WHERE user_id = ? AND (title LIKE ? OR description LIKE ? OR ingredients LIKE ?)
+		WHERE user_id = ? AND (title LIKE ? OR description LIKE ? OR ingredients LIKE ? OR tags LIKE ?)
 		ORDER BY created_at DESC
-	`, user.ID, searchQuery, searchQuery, searchQuery)
+	`, user.ID, searchQuery, searchQuery, searchQuery, searchQuery)
 	if err != nil {
 		h.logger.Error("Failed to search recipes", "error", err, "user_id", user.ID, "query", query)
 		return c.String(http.StatusInternalServerError, "Failed to search recipes")
@@ -276,9 +279,9 @@ func (h *Handlers) SearchRecipes(c echo.Context) error {
 	recipes := []models.Recipe{}
 	for rows.Next() {
 		var r models.Recipe
-		var description, cookTime, servings, photoURL, originalURL sql.NullString
+		var description, cookTime, servings, photoURL, originalURL, tags sql.NullString
 		var createdAt sql.NullTime
-		err := rows.Scan(&r.ID, &r.Title, &description, &cookTime, &servings, &r.Ingredients, &r.Instructions, &createdAt, &photoURL, &originalURL)
+		err := rows.Scan(&r.ID, &r.Title, &description, &cookTime, &servings, &r.Ingredients, &r.Instructions, &createdAt, &photoURL, &originalURL, &tags)
 		if err != nil {
 			h.logger.Error("Failed to scan recipe row", "error", err)
 			continue
@@ -288,6 +291,7 @@ func (h *Handlers) SearchRecipes(c echo.Context) error {
 		r.Servings = nullStringToString(servings)
 		r.PhotoURL = nullStringToString(photoURL)
 		r.OriginalURL = nullStringToString(originalURL)
+		r.Tags = nullStringToString(tags)
 		if createdAt.Valid {
 			r.CreatedAt = createdAt.Time.Format("2006-01-02 15:04:05")
 		} else {
@@ -310,13 +314,13 @@ func (h *Handlers) GetRecipe(c echo.Context) error {
 	}
 
 	var r models.Recipe
-	var description, cookTime, servings, photoURL, originalURL sql.NullString
+	var description, cookTime, servings, photoURL, originalURL, tags sql.NullString
 	var createdAt sql.NullTime
 	err = h.db.QueryRow(`
-		SELECT id, title, description, cook_time, servings, ingredients, instructions, created_at, photo_url, original_url 
+		SELECT id, title, description, cook_time, servings, ingredients, instructions, created_at, photo_url, original_url, tags 
 		FROM recipes 
 		WHERE id = ? AND user_id = ?
-	`, recipeId, user.ID).Scan(&r.ID, &r.Title, &description, &cookTime, &servings, &r.Ingredients, &r.Instructions, &createdAt, &photoURL, &originalURL)
+	`, recipeId, user.ID).Scan(&r.ID, &r.Title, &description, &cookTime, &servings, &r.Ingredients, &r.Instructions, &createdAt, &photoURL, &originalURL, &tags)
 
 	if err == sql.ErrNoRows {
 		h.logger.Warn("Recipe not found", "recipe_id", recipeId, "user_id", user.ID)
@@ -331,6 +335,7 @@ func (h *Handlers) GetRecipe(c echo.Context) error {
 	r.Servings = nullStringToString(servings)
 	r.OriginalURL = nullStringToString(originalURL)
 	r.PhotoURL = nullStringToString(photoURL)
+	r.Tags = nullStringToString(tags)
 	if createdAt.Valid {
 		r.CreatedAt = createdAt.Time.Format("2006-01-02 15:04:05")
 	} else {
@@ -351,13 +356,13 @@ func (h *Handlers) EditRecipeForm(c echo.Context) error {
 	}
 
 	var r models.Recipe
-	var description, cookTime, servings, photoUrl sql.NullString
+	var description, cookTime, servings, photoUrl, tags sql.NullString
 	var createdAt sql.NullTime
 	err = h.db.QueryRow(`
-		SELECT id, title, description, cook_time, servings, ingredients, instructions, photo_url, created_at 
+		SELECT id, title, description, cook_time, servings, ingredients, instructions, photo_url, created_at, tags 
 		FROM recipes 
 		WHERE id = ? AND user_id = ?
-	`, recipeId, user.ID).Scan(&r.ID, &r.Title, &description, &cookTime, &servings, &r.Ingredients, &r.Instructions, &photoUrl, &createdAt)
+	`, recipeId, user.ID).Scan(&r.ID, &r.Title, &description, &cookTime, &servings, &r.Ingredients, &r.Instructions, &photoUrl, &createdAt, &tags)
 
 	if err == sql.ErrNoRows {
 		h.logger.Warn("Recipe not found for edit", "recipe_id", recipeId, "user_id", user.ID)
@@ -371,6 +376,7 @@ func (h *Handlers) EditRecipeForm(c echo.Context) error {
 	r.CookTime = nullStringToString(cookTime)
 	r.Servings = nullStringToString(servings)
 	r.PhotoURL = nullStringToString(photoUrl)
+	r.Tags = nullStringToString(tags)
 	if createdAt.Valid {
 		r.CreatedAt = createdAt.Time.Format("2006-01-02 15:04:05")
 	} else {
@@ -390,6 +396,7 @@ func (h *Handlers) UpdateRecipe(c echo.Context) error {
 	ingredients := c.FormValue("ingredients")
 	instructions := c.FormValue("instructions")
 	photoUrl := c.FormValue("photoUrl")
+	tags := c.FormValue("tags")
 
 	if title == "" {
 		return c.String(http.StatusBadRequest, "Title is required")
@@ -397,9 +404,9 @@ func (h *Handlers) UpdateRecipe(c echo.Context) error {
 
 	result, err := h.db.Exec(`
 		UPDATE recipes 
-		SET title = ?, description = ?, cook_time = ?, servings = ?, ingredients = ?, instructions = ?, photo_url = ?
+		SET title = ?, description = ?, cook_time = ?, servings = ?, ingredients = ?, instructions = ?, photo_url = ?, tags = ?
 		WHERE id = ? AND user_id = ?
-	`, title, nullIfEmpty(description), nullIfEmpty(cookTime), nullIfEmpty(servings), ingredients, instructions, nullIfEmpty(photoUrl), id, user.ID)
+	`, title, nullIfEmpty(description), nullIfEmpty(cookTime), nullIfEmpty(servings), ingredients, instructions, nullIfEmpty(photoUrl), nullIfEmpty(tags), id, user.ID)
 
 	if err != nil {
 		h.logger.Error("Failed to update recipe", "error", err, "recipe_id", id, "user_id", user.ID)
@@ -481,28 +488,237 @@ func (h *Handlers) LoginOneTspFormSubmit(c echo.Context) error {
 		h.logger.Warn("OneTsp login failed - missing credentials", "user_id", user.ID)
 		return c.String(http.StatusBadRequest, "Email and password are required")
 	}
+	apiUrl := "https://dishdex-import-production.up.railway.app/api/login/onetsp"
 
+	payload := map[string]string{
+		"username": email,
+		"password": password,
+	}
 
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		h.logger.Error("Failed to marshal payload", "error", err)
+		return c.String(http.StatusInternalServerError, "Failed to marshal payload")
+	}
 
-	h.logger.Info("OneTsp authentication attempt", "user_id", user.ID, "email", email)
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest("POST", apiUrl, bytes.NewReader(jsonPayload))
+	if err != nil {
+		h.logger.Error("Failed to create request", "error", err)
+		return c.String(http.StatusInternalServerError, "Failed to create request")
+	}
+	req.Header.Set("Content-Type", "application/json")
 
-	// Placeholder for actual OneTsp API integration
-	// In a real implementation, you would:
-	// 1. Make a POST request to OneTsp's login endpoint
-	// 2. Handle the response (success/failure)
-	// 3. Store the OneTsp session/token for future API calls
-	// 4. Return appropriate success/error response
+	resp, err := client.Do(req)
+	if err != nil {
+		h.logger.Error("Failed to send request", "error", err)
+		return c.String(http.StatusInternalServerError, "Failed to send request")
+	}
+	defer resp.Body.Close()
 
-	return c.String(http.StatusOK, "OneTsp authentication successful (placeholder)")
+	if resp.StatusCode != http.StatusOK {
+		h.logger.Error("Failed to login", "status", resp.StatusCode, "body", resp.Body)
+		return c.String(http.StatusInternalServerError, "Failed to login")
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		h.logger.Error("Failed to read response body", "error", err)
+		return c.String(http.StatusInternalServerError, "Failed to read response body")
+	}
+
+	h.logger.Info("OneTsp login successful", "user_id", user.ID, "email", email)
+
+	var response struct {
+		Token string `json:"token"`
+	}
+
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		h.logger.Error("Failed to unmarshal response", "error", err)
+		return c.String(http.StatusInternalServerError, "Failed to unmarshal response")
+	}
+	return defaultRender(c, templates.OneTspImportDialog(response.Token), user)
 }
 
 func (h *Handlers) ImportOneTsp(c echo.Context) error {
 	user := auth.GetUserFromContext(c)
+	token := c.FormValue("token")
+
+	if token == "" {
+		h.logger.Error("OneTsp import failed - no token provided", "user_id", user.ID)
+		return renderSingle(c, templates.ErrorMessage("Import failed: No token provided"))
+	}
+
 	h.logger.Info("OneTsp import initiated", "user_id", user.ID)
 
-	// Implementation for OneTsp import
-	// This would typically involve fetching recipes from OneTsp's API
-	return c.String(http.StatusOK, "OneTsp import functionality not yet implemented")
+	// Make POST request to external API
+	apiURL := "https://dishdex-import-production.up.railway.app/api/import/onetsp"
+
+	// Prepare request body
+	requestBody := map[string]string{
+		"token": token,
+	}
+
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		h.logger.Error("Failed to marshal request body", "error", err, "user_id", user.ID)
+		return renderSingle(c, templates.ErrorMessage("Import failed: Invalid request"))
+	}
+
+	// Create HTTP client with timeout
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	// Create request
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		h.logger.Error("Failed to create request", "error", err, "user_id", user.ID)
+		return renderSingle(c, templates.ErrorMessage("Import failed: Could not create request"))
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// Make request
+	resp, err := client.Do(req)
+	if err != nil {
+		h.logger.Error("Failed to make request to OneTsp API", "error", err, "user_id", user.ID, "api_url", apiURL)
+		return renderSingle(c, templates.ErrorMessage("Import failed: Could not connect to OneTsp"))
+	}
+	defer resp.Body.Close()
+
+	h.logger.Info("OneTsp API response", "status", resp.Status, "user_id", user.ID)
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		h.logger.Error("OneTsp API returned error status", "status", resp.Status, "body", string(bodyBytes), "user_id", user.ID)
+		return renderSingle(c, templates.ErrorMessage("Import failed: OneTsp API returned error"))
+	}
+
+	// Parse response
+	var response struct {
+		Recipes []struct {
+			URL          string   `json:"url"`
+			Title        string   `json:"title"`
+			Ingredients  []string `json:"ingredients"`
+			Instructions []string `json:"instructions"`
+			RecipeURL    *string  `json:"recipeUrl"`
+			Tags         []string `json:"tags"`
+			Cooktime     string   `json:"cooktime"`
+		} `json:"recipes"`
+		Message string `json:"message"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		h.logger.Error("Failed to parse OneTsp API response", "error", err, "user_id", user.ID)
+		return renderSingle(c, templates.ErrorMessage("Import failed: Invalid response from OneTsp"))
+	}
+
+	// Save recipes to database
+	importedCount := 0
+	for _, recipeData := range response.Recipes {
+		recipeID := uuid.NewString()
+
+		// Convert ingredients array to string
+		ingredients := ""
+		for i, ingredient := range recipeData.Ingredients {
+			ingredients += ingredient
+			if i < len(recipeData.Ingredients)-1 {
+				ingredients += "\n"
+			}
+		}
+
+		// Convert instructions array to string
+		instructions := ""
+		for i, instruction := range recipeData.Instructions {
+			instructions += instruction
+			if i < len(recipeData.Instructions)-1 {
+				instructions += "\n"
+			}
+		}
+
+		// Convert tags array to string
+		tags := ""
+		for i, tag := range recipeData.Tags {
+			tags += tag
+			if i < len(recipeData.Tags)-1 {
+				tags += ", "
+			}
+		}
+
+		// Handle recipeUrl (can be null)
+		originalURL := ""
+		if recipeData.RecipeURL != nil {
+			originalURL = *recipeData.RecipeURL
+		}
+
+		// Get OG image from RecipeURL if available
+		photoURL := ""
+		if originalURL != "" {
+			photoURL = h.getOGImage(originalURL)
+		}
+
+		// Try to import from URL if we have one, to get better data
+		var importedRecipe *models.Recipe
+		if originalURL != "" {
+			h.logger.Info("Attempting to import recipe from URL to enhance OneTsp data",
+				"user_id", user.ID, "recipe_title", recipeData.Title, "url", originalURL)
+
+			var err error
+			importedRecipe, err = h.importRecipeURL(originalURL)
+			if err != nil {
+				h.logger.Error("Failed to import recipe from URL, using OneTsp data only",
+					"error", err, "user_id", user.ID, "recipe_title", recipeData.Title, "url", originalURL)
+			} else {
+				h.logger.Info("Successfully imported recipe from URL to enhance OneTsp data",
+					"user_id", user.ID, "recipe_title", recipeData.Title, "url", originalURL)
+			}
+		}
+
+		// Prepare recipe data, prioritizing imported data when available
+		recipeTitle := recipeData.Title
+		cookTime := recipeData.Cooktime
+		servings := ""
+
+		if importedRecipe != nil {
+			// Use imported recipe data to enhance OneTsp data
+			if importedRecipe.Title != "" {
+				recipeTitle = importedRecipe.Title // Use imported title if available
+			}
+			if importedRecipe.CookTime != "" {
+				cookTime = importedRecipe.CookTime
+			}
+			servings = importedRecipe.Servings
+			if len(importedRecipe.Ingredients) > 0 {
+				ingredients = importedRecipe.Ingredients
+			}
+			if len(importedRecipe.Instructions) > 0 {
+				instructions = importedRecipe.Instructions
+			}
+			if photoURL == "" {
+				photoURL = importedRecipe.PhotoURL
+			}
+		}
+
+		_, err := h.db.Exec(`
+			INSERT INTO recipes (id, user_id, title, description, cook_time, servings, ingredients, instructions, photo_url, original_url, tags, created_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, recipeID, user.ID, recipeTitle, "", cookTime, servings,
+			ingredients, instructions, photoURL, originalURL, tags,
+			time.Now().UTC())
+
+		if err != nil {
+			h.logger.Error("Failed to save imported recipe", "error", err, "user_id", user.ID, "recipe_title", recipeData.Title)
+			continue
+		}
+
+		importedCount++
+		h.logger.Info("Successfully imported recipe", "user_id", user.ID, "recipe_id", recipeID, "recipe_title", recipeData.Title)
+	}
+
+	h.logger.Info("OneTsp import completed", "user_id", user.ID, "imported_count", importedCount, "total_recipes", len(response.Recipes))
+
+	// Redirect to recipes page to show imported recipes
+	return h.ListRecipes(c)
 }
 
 // Helper Functions
@@ -627,11 +843,11 @@ func (h *Handlers) importRecipeURL(url string) (*models.Recipe, error) {
 		Ingredients []struct {
 			Name string `json:"name"`
 		} `json:"ingredients"`
-		Instructions    []map[string]interface{} `json:"instructions"`
-		SourceUrl       string                   `json:"sourceUrl"`
-		ImageUrls       []string                 `json:"imageUrls"`
-		Categories      []string                 `json:"categories"`
-		Ctemplatessines []string                 `json:"ctemplatessines"`
+		Instructions []map[string]interface{} `json:"instructions"`
+		SourceUrl    string                   `json:"sourceUrl"`
+		ImageUrls    []string                 `json:"imageUrls"`
+		Categories   []string                 `json:"categories"`
+		Cuisines     []string                 `json:"cuisines"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&recipeData); err != nil {
 		return nil, fmt.Errorf("failed to parse recipe data: %w", err)

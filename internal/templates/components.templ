@@ -190,7 +190,7 @@ templ RecipeFormFields(title, description, cookTime, servings, ingredients, inst
 			placeholder="Brief description of your recipe"
 		>{ description }</textarea>
 	</div>
-	<div class="mb-3">
+	<div class="mb-3 hidden">
 		<label for="photoUrl" class="block text-sm font-medium text-primary mb-1">Photo URL</label>
 		<input
 			type="url"
@@ -246,7 +246,7 @@ templ RecipeFormFields(title, description, cookTime, servings, ingredients, inst
 		<div id="instructions-steps"></div>
 		<input type="hidden" id="instructions" name="instructions" value={ instructions } required/>
 	</div>
-	<div class="mb-3">
+	<div class="mb-3 hidden">
 		<label for="tags" class="block text-sm font-medium text-primary mb-1">Tags</label>
 		<input
 			type="text"

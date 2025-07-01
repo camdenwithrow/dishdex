@@ -1,0 +1,121 @@
+package templates
+
+import "os"
+import "github.com/camdenwithrow/dishdex/internal/models"
+
+templ Base(content templ.Component) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>DishDex</title>
+			<link rel="stylesheet" href="/static/css/output.css"/>
+			<link rel="apple-touch-icon" sizes="57x57" href="static/favicon/apple-icon-57x57.png"/>
+			<link rel="apple-touch-icon" sizes="60x60" href="static/favicon/apple-icon-60x60.png"/>
+			<link rel="apple-touch-icon" sizes="72x72" href="static/favicon/apple-icon-72x72.png"/>
+			<link rel="apple-touch-icon" sizes="76x76" href="static/favicon/apple-icon-76x76.png"/>
+			<link rel="apple-touch-icon" sizes="114x114" href="static/favicon/apple-icon-114x114.png"/>
+			<link rel="apple-touch-icon" sizes="120x120" href="static/favicon/apple-icon-120x120.png"/>
+			<link rel="apple-touch-icon" sizes="144x144" href="static/favicon/apple-icon-144x144.png"/>
+			<link rel="apple-touch-icon" sizes="152x152" href="static/favicon/apple-icon-152x152.png"/>
+			<link rel="apple-touch-icon" sizes="180x180" href="static/favicon/apple-icon-180x180.png"/>
+			<link rel="icon" type="image/png" sizes="192x192" href="static/favicon/android-icon-192x192.png"/>
+			<link rel="icon" type="image/png" sizes="32x32" href="static/favicon/favicon-32x32.png"/>
+			<link rel="icon" type="image/png" sizes="96x96" href="static/favicon/favicon-96x96.png"/>
+			<link rel="icon" type="image/png" sizes="16x16" href="static/favicon/favicon-16x16.png"/>
+			<link rel="manifest" href="static/favicon/manifest.json"/>
+			<meta name="msapplication-TileColor" content="#ffffff"/>
+			<meta name="msapplication-TileImage" content="/ms-icon-144x144.png"/>
+			<meta name="theme-color" content="#ffffff"/>
+			<meta name="msapplication-TileColor" content="#ffffff"/>
+			<meta name="msapplication-TileImage" content="static/favicon/ms-icon-144x144.png"/>
+			<meta name="theme-color" content="#ffffff"/>
+			// <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png"/>
+			// <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png"/>
+			// <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png"/>
+			<link rel="manifest" href="/static/favicon/site.webmanifest"/>
+			if os.Getenv("ENV") != "production" {
+				<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+			}
+			<script src="/static/js/htmx.min.js"></script>
+		</head>
+		<body class="min-h-screen bg-base text-primary font-serif">
+			<div class="min-h-screen">
+				@content
+			</div>
+			<!-- Modal -->
+			@dialogPlaceholder()
+			<script>
+                function closeModal(){
+                    console.log("closing modal")
+                    const dialog = document.getElementById("dialog");
+                    dialog.classList.add("hidden");
+                    dialog.innerHTML = "";
+                }
+            </script>
+			<script>
+				document.addEventListener('click', function(event) {
+					const dropdown = document.getElementById('user-menu-dropdown');
+					const button = document.getElementById('user-menu-button');
+					if (!dropdown || !button) return;
+					if (!dropdown.classList.contains('hidden') && !dropdown.contains(event.target) && !button.contains(event.target)) {
+						dropdown.classList.add('hidden');
+					}
+				});
+				
+				// Handle One tsp. modal button in dropdown
+				document.addEventListener('click', function(event) {
+					const onetspDropdownBtn = document.getElementById('open-onetsp-modal-dropdown');
+					const dropdown = document.getElementById('user-menu-dropdown');
+					
+					if (event.target === onetspDropdownBtn) {
+						// Close the dropdown
+						if (dropdown) dropdown.classList.add('hidden');
+						
+						// Open the One tsp. modal
+						const onetspModal = document.getElementById('onetsp-signin-modal');
+						const onetspEmailInput = document.getElementById('onetsp-email');
+						
+						if (onetspModal) {
+							onetspModal.classList.remove('hidden');
+							setTimeout(() => {
+								if (onetspEmailInput) onetspEmailInput.focus();
+							}, 100);
+						}
+					}
+				});
+			</script>
+		</body>
+	</html>
+}
+
+templ Default(content templ.Component, user *models.User) {
+	@Base(ContentWithNav(content, user))
+}
+
+templ ContentWithNav(content templ.Component, user *models.User) {
+	@Nav(user)
+	<main class="py-8">
+		<div id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+			@content
+		</div>
+	</main>
+}
+
+templ ContentWithoutNav(content templ.Component) {
+	<main class="py-8">
+		<div id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+			@content
+		</div>
+	</main>
+}
+
+templ ContentWithCustomNav(customNav templ.Component, content templ.Component) {
+	@customNav
+	<main class="py-8">
+		<div id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+			@content
+		</div>
+	</main>
+}

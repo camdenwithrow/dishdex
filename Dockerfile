@@ -23,13 +23,15 @@ COPY . .
 RUN templ generate
 
 # Build Tailwind CSS
-WORKDIR /app/ui
-RUN npm install
-RUN npx tailwindcss -i input.css -o static/output.css --minify
+WORKDIR /app/static/css
+# Download Tailwind CSS standalone executable
+RUN wget -O tailwindcss https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.11/tailwindcss-linux-x64-musl \
+    && chmod +x tailwindcss
+RUN ./tailwindcss -i input.css -o output.css --minify
 
 # Build the application
 WORKDIR /app
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main .
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/app
 
 # Production stage
 FROM alpine:latest
@@ -48,14 +50,10 @@ WORKDIR /app
 COPY --from=builder /app/main .
 
 # Copy static assets (including built CSS)
-COPY --from=builder /app/ui/static ./ui/static
+COPY --from=builder /app/static ./static
 
 # Copy database migrations
 COPY --from=builder /app/migrations ./migrations
-
-# Create data directory for SQLite database
-RUN mkdir -p /app/data && \
-    chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser

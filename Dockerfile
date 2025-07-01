@@ -23,9 +23,9 @@ COPY . .
 RUN templ generate
 
 # Build Tailwind CSS
-WORKDIR /app/ui
+WORKDIR /app/static/css
 RUN npm install
-RUN npx tailwindcss -i input.css -o static/output.css --minify
+RUN npx tailwindcss -i input.css -o output.css --minify
 
 # Build the application
 WORKDIR /app
@@ -48,14 +48,10 @@ WORKDIR /app
 COPY --from=builder /app/main .
 
 # Copy static assets (including built CSS)
-COPY --from=builder /app/ui/static ./ui/static
+COPY --from=builder /app/static ./static
 
 # Copy database migrations
 COPY --from=builder /app/migrations ./migrations
-
-# Create data directory for SQLite database
-RUN mkdir -p /app/data && \
-    chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser

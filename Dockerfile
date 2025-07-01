@@ -24,8 +24,10 @@ RUN templ generate
 
 # Build Tailwind CSS
 WORKDIR /app/static/css
-RUN npm install
-RUN npx tailwindcss -i input.css -o output.css --minify
+# Download Tailwind CSS standalone executable
+RUN wget -O tailwindcss https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.11/tailwindcss-linux-x64-musl \
+    && chmod +x tailwindcss
+RUN ./tailwindcss -i input.css -o output.css --minify
 
 # Build the application
 WORKDIR /app

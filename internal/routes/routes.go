@@ -42,8 +42,9 @@ func SetupRoutes(e *echo.Echo, h *handlers.Handlers, a *auth.AuthService, log *l
 	e.POST("/profile/complete", h.SubmitCompleteProfileForm)
 
 	// Protected Routes
-	recipes := e.Group("/recipes", a.ProtectedRouteMiddleware)
+	e.GET("/account", h.AccountPage, a.ProtectedRouteMiddleware)
 
+	recipes := e.Group("/recipes", a.ProtectedRouteMiddleware)
 	recipes.GET("", h.ListRecipes)
 	recipes.POST("", h.CreateRecipe)
 	recipes.GET("/new", h.AddRecipeForm)

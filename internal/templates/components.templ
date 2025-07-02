@@ -45,18 +45,32 @@ templ Nav(user *models.User) {
 								</svg>
 							</button>
 							<div id="user-menu-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-border">
-								<div class="px-4 py-2 text-sm text-primary">{ user.Name }</div>
+								<div class="px-4 pt-2 text-sm text-primary font-bold">{ user.Name }</div>
+								<div class="px-4 pb-2 text-xs text-primary">{ user.Email }</div>
+								<hr/>
+								<div class="text-sm w-full text-left text-sm text-primary cursor-pointer hover:bg-card">
+									<a 
+										class="w-full h-full px-4 py-2 block" 
+										hx-get="/account" 
+										hx-target="#main-content" 
+										hx-swap="innerHTML" 
+										hx-push-url="true"
+										hx-on::after-request="document.getElementById('user-menu-dropdown').classList.toggle('hidden')"
+									>
+										Account
+									</a>
+								</div>
 								// <a href="#" class="block px-4 py-2 text-sm text-primary hover:bg-card">Account</a>
-								<button
-									type="button"
-									id="open-onetsp-modal-dropdown"
-									class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card"
-									hx-get="/recipes/onetsp/login"
-									hx-target="#dialog"
-									hx-swap="outerHTML"
-								>
-									Import from 1tsp
-								</button>
+								// <button
+								// 	type="button"
+								// 	id="open-onetsp-modal-dropdown"
+								// 	class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card"
+								// 	hx-get="/recipes/onetsp/login"
+								// 	hx-target="#dialog"
+								// 	hx-swap="outerHTML"
+								// >
+								// 	Import from 1tsp
+								// </button>
 								<form action="/logout" method="POST">
 									<button type="submit" class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card">Logout</button>
 								</form>
@@ -99,9 +113,12 @@ templ SignOutOnlyNav() {
 	</nav>
 }
 
+var SearchHandle = templ.NewOnceHandle()
+
 templ Search() {
 	<div class="relative h-10 px-6 py-2 form-input block w-full rounded-md border border-border sm:text-sm">
 		<input
+			id="search-bar"
 			class="w-full h-full focus:outline-none focus:ring-blue-500 focus:border-blue-500"
 			type="search"
 			name="query"
@@ -111,12 +128,50 @@ templ Search() {
 			hx-target="#main-content"
 			hx-indicator="#search-loading"
 		/>
-		<div id="search-loading" class="htmx-indicator absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 z-10 pointer-events-none flex items-center justify-center">
-			<svg class="animate-spin h-5 w-5 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-				<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-				<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-			</svg>
+		<div class="absolute right-2 top-1/2 -translate-y-1/2 flex justify-end items-center z-10">
+			<div id="search-loading" class="htmx-indicator w-5 h-5 pointer-events-none flex items-center justify-center">
+				<svg class="animate-spin h-5 w-5 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+				</svg>
+			</div>
+			<div id="clear-search" class="hidden w-5 h-5 z-10 flex items-center justify-center">
+				<button
+					type="button"
+					id="clear-search-btn"
+					class="cursor-pointer w-full h-full text-lg mb-3"
+					hx-post="/recipes/search"
+					hx-target="#main-content"
+					hx-swap="innerHTML"
+					hx-vals='{"query": ""}'
+					hx-indicator="#search-loading"
+					hx-on::before-request="clearSearch()"
+					hx-on::after-request="toggleClearSearchButton()"
+				>
+					&times;
+				</button>
+			</div>
 		</div>
+		@SearchHandle.Once() {
+			<script>
+				const searchBarEl = document.getElementById("search-bar");
+				const clearSearchButton = document.getElementById("clear-search");
+				function clearSearch(){
+					searchBarEl.value = ""
+					clearSearchButton.classList.add("hidden");
+				}
+				function toggleClearSearchButton() {
+					if (!searchBarEl || !clearSearchButton) return;
+					if (searchBarEl.value !== "") {
+						clearSearchButton.classList.remove("hidden");
+					} else {
+						clearSearchButton.classList.add("hidden");
+					}
+				}
+				searchBarEl.addEventListener("input", toggleClearSearchButton);
+				toggleClearSearchButton();
+			</script>
+		}
 	</div>
 }
 

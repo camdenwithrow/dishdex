@@ -45,18 +45,23 @@ templ Nav(user *models.User) {
 								</svg>
 							</button>
 							<div id="user-menu-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-border">
-								<div class="px-4 py-2 text-sm text-primary">{ user.Name }</div>
+								<div class="px-4 pt-2 text-sm text-primary font-bold">{ user.Name }</div>
+								<div class="px-4 pb-2 text-xs text-primary">{ user.Email }</div>
+								<hr/>
+								<div class="px-4 py-2 text-sm w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card">
+									<a href="/profile">Account</a>
+								</div>
 								// <a href="#" class="block px-4 py-2 text-sm text-primary hover:bg-card">Account</a>
-								<button
-									type="button"
-									id="open-onetsp-modal-dropdown"
-									class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card"
-									hx-get="/recipes/onetsp/login"
-									hx-target="#dialog"
-									hx-swap="outerHTML"
-								>
-									Import from 1tsp
-								</button>
+								// <button
+								// 	type="button"
+								// 	id="open-onetsp-modal-dropdown"
+								// 	class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card"
+								// 	hx-get="/recipes/onetsp/login"
+								// 	hx-target="#dialog"
+								// 	hx-swap="outerHTML"
+								// >
+								// 	Import from 1tsp
+								// </button>
 								<form action="/logout" method="POST">
 									<button type="submit" class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card">Logout</button>
 								</form>

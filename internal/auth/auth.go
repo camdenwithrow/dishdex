@@ -92,7 +92,12 @@ func (a *AuthService) ProtectedRouteMiddleware(next echo.HandlerFunc) echo.Handl
 			a.logger.Debug("Login required - redirecting to home")
 			return c.Redirect(http.StatusSeeOther, "/")
 		}
-		user := c.Get(UserKey).(*models.User)
+		user, err := a.GetUserWithFallback(c)
+		if err != nil {
+			c.Set("loggedIn", false)
+			a.logger.Debug("Login required - redirecting to home")
+			return c.Redirect(http.StatusSeeOther, "/")
+		}
 		if user.Name == "" || user.Email == "" {
 			return c.Redirect(http.StatusSeeOther, "/profile/complete")
 		}
@@ -234,8 +239,16 @@ func (a *AuthService) CompleteAuth(user *goth.User) (string, error) {
 	a.logger.Info("Attempting to upsert user", "user_id", user.UserID, "name", user.Name, "email", user.Email)
 	var err error
 	for attempt := 1; attempt <= 3; attempt++ {
-		_, err = a.db.Exec(`INSERT OR REPLACE INTO users (id, name, email, avatar_url) VALUES (?, ?, ?, ?)`,
-			user.UserID, user.Name, user.Email, user.AvatarURL)
+		_, err = a.db.Exec(`
+			INSERT INTO users (id, name, email, avatar_url)
+			VALUES (?, ?, ?, ?)
+			ON CONFLICT(id) DO UPDATE SET
+			  name = COALESCE(NULLIF(excluded.name, ''), users.name),
+			  email = COALESCE(NULLIF(excluded.email, ''), users.email),
+			  avatar_url = COALESCE(NULLIF(excluded.avatar_url, ''), users.avatar_url)
+			`,
+			user.UserID, user.Name, user.Email, user.AvatarURL,
+		)
 		if err == nil {
 			break
 		}
@@ -254,16 +267,9 @@ func (a *AuthService) CompleteAuth(user *goth.User) (string, error) {
 
 	// Attempt to create session with retry logic
 	a.logger.Info("Creating session for user", "user_id", user.UserID)
-	var sessionID string
-	for attempt := 1; attempt <= 3; attempt++ {
-		sessionID, err = a.CreateSession(user.UserID)
-		if err == nil {
-			break
-		}
-		a.logger.Warn("Failed to create session, retrying", "attempt", attempt, "error", err, "user_id", user.UserID)
-		if attempt < 3 {
-			time.Sleep(100 * time.Millisecond)
-		}
+	sessionID, err := a.CreateSession(user.UserID)
+	if err != nil {
+		a.logger.Warn("Failed to create session", "error", err, "user_id", user.UserID)
 	}
 
 	if err != nil {

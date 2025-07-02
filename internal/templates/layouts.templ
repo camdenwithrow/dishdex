@@ -86,6 +86,14 @@ templ Base(content templ.Component) {
 					}
 				});
 			</script>
+			<script>
+				document.body.addEventListener('htmx:afterSwap', function(evt) {
+					// Only scroll to top if the main content was updated
+					if (evt.detail.target && evt.detail.target.id === "main-content") {
+						window.scrollTo(0, 0);
+					}
+				});
+			</script>
 		</body>
 	</html>
 }

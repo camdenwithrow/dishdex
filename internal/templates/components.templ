@@ -99,6 +99,8 @@ templ SignOutOnlyNav() {
 	</nav>
 }
 
+var SearchHandle = templ.NewOnceHandle()
+
 templ Search() {
 	<div class="relative h-10 px-6 py-2 form-input block w-full rounded-md border border-border sm:text-sm">
 		<input
@@ -129,32 +131,33 @@ templ Search() {
 					hx-swap="innerHTML"
 					hx-vals='{"query": ""}'
 					hx-indicator="#search-loading"
-					hx-on::after-request="clearSearch()"
+					hx-on::before-request="clearSearch()"
+					hx-on::after-request="toggleClearSearchButton()"
 				>
 					&times;
 				</button>
 			</div>
 		</div>
-		<script>
-			function clearSearch(){
-				const searchBar = document.getElementById("search-bar");
-				searchBar.value = ""
-			}
-			function toggleClearSearchButton() {
-				const searchBar = document.getElementById("search-bar");
+		@SearchHandle.Once() {
+			<script>
+				const searchBarEl = document.getElementById("search-bar");
 				const clearSearchButton = document.getElementById("clear-search");
-				const clearSearchBtn = document.getElementById("clear-search-btn");
-				if (!searchBar || !clearSearchButton || !clearSearchBtn) return;
-				if (searchBar.value !== "") {
-					clearSearchButton.classList.remove("hidden");
-				} else {
+				function clearSearch(){
+					searchBarEl.value = ""
 					clearSearchButton.classList.add("hidden");
 				}
-			}
-			const searchBar = document.getElementById("search-bar");
-			searchBar.addEventListener("input", toggleClearSearchButton);
-			toggleClearSearchButton();
-		</script>
+				function toggleClearSearchButton() {
+					if (!searchBarEl || !clearSearchButton) return;
+					if (searchBarEl.value !== "") {
+						clearSearchButton.classList.remove("hidden");
+					} else {
+						clearSearchButton.classList.add("hidden");
+					}
+				}
+				searchBarEl.addEventListener("input", toggleClearSearchButton);
+				toggleClearSearchButton();
+			</script>
+		}
 	</div>
 }
 

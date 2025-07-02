@@ -260,13 +260,12 @@ func (h *Handlers) AddRecipeFormFromValues(c echo.Context, recipe *models.Recipe
 }
 
 func (h *Handlers) SearchRecipes(c echo.Context) error {
-	user := auth.GetUserFromContext(c)
 	query := c.FormValue("query")
-	h.logger.Debug("Searching recipes", "user_id", user.ID, "query", query)
-
 	if query == "" {
 		return h.ListRecipes(c)
 	}
+	user := auth.GetUserFromContext(c)
+	h.logger.Debug("Searching recipes", "user_id", user.ID, "query", query)
 
 	searchQuery := "%" + query + "%"
 	rows, err := h.db.Query(`

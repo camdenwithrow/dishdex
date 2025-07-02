@@ -686,7 +686,7 @@ func (h *Handlers) ImportOneTsp(c echo.Context) error {
 		if importedRecipe != nil {
 			// Use imported recipe data to enhance OneTsp data
 			if importedRecipe.Title != "" {
-				recipeTitle = importedRecipe.Title 
+				recipeTitle = importedRecipe.Title
 			}
 			if importedRecipe.CookTime != "" {
 				cookTime = importedRecipe.CookTime
@@ -785,7 +785,18 @@ func completeAuth(c echo.Context, user *goth.User, h *Handlers) error {
 
 	h.logger.Debug("Session saved successfully", "session_id", sessionId)
 
-	if user.Email == "" || user.Name == "" {
+	userFromContext := h.AuthService.GetUser(c)
+	userName := ""
+	userEmail := ""
+	if userFromContext != nil {
+		userName = userFromContext.Name
+		userEmail = userFromContext.Email
+	} else {
+		userName = user.Name
+		userEmail = user.Email
+	}
+
+	if userEmail == "" || userName == "" {
 		h.logger.Info("User needs to complete profile", "user_id", user.UserID)
 		return c.Redirect(http.StatusSeeOther, "/profile/complete")
 	}

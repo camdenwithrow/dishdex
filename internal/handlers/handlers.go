@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"database/sql"
@@ -280,7 +281,12 @@ func (h *Handlers) SearchRecipes(c echo.Context) error {
 	}
 	defer rows.Close()
 
-	recipes := []models.Recipe{}
+	type RankedRecipe struct {
+		recipe models.Recipe
+		rank   int
+	}
+
+	rankedRecipes := []RankedRecipe{}
 	for rows.Next() {
 		var r models.Recipe
 		var description, cookTime, servings, photoURL, originalURL, tags sql.NullString
@@ -301,7 +307,18 @@ func (h *Handlers) SearchRecipes(c echo.Context) error {
 		} else {
 			r.CreatedAt = ""
 		}
-		recipes = append(recipes, r)
+		// recipes = append(recipes, r)
+		rank := rankQueryRecipes(&r, query)
+		rankedRecipes = append(rankedRecipes, RankedRecipe{r, rank})
+	}
+
+	sort.Slice(rankedRecipes, func(i int, j int) bool {
+		return rankedRecipes[i].rank > rankedRecipes[j].rank
+	})
+
+	recipes := []models.Recipe{}
+	for _, rankedRecipe := range rankedRecipes {
+		recipes = append(recipes, rankedRecipe.recipe)
 	}
 
 	return defaultRender(c, templates.RecipesList(recipes), user)
@@ -986,4 +1003,46 @@ func (h *Handlers) getOGImage(url string) string {
 	}
 
 	return ""
+}
+
+func rankQueryRecipes(recipe *models.Recipe, query string) int {
+	rank := 0
+	query = strings.ToLower(query)
+	title := strings.ToLower(recipe.Title)
+	tags := strings.ToLower(recipe.Tags)
+	description := strings.ToLower(recipe.Description)
+	ingredients := strings.ToLower(recipe.Ingredients)
+
+	if strings.Contains(title, query) {
+		return rankValue(title, query, rank+80)
+	}
+
+	if strings.Contains(tags, query) {
+		return rankValue(tags, query, rank+60)
+	}
+
+	if strings.Contains(description, query) {
+		return rankValue(description, query, rank+40)
+	}
+
+	if strings.Contains(ingredients, query) {
+		return rankValue(ingredients, query, rank+20)
+	}
+	return rank
+}
+
+func rankValue(value string, query string, initial int) int {
+	rank := initial
+
+	if strings.HasPrefix(value, query) {
+		return rank + 9
+	}
+
+	splitTitle := strings.SplitSeq(value, " ")
+	for word := range splitTitle {
+		if word == query {
+			rank = rank + 1
+		}
+	}
+	return rank
 }

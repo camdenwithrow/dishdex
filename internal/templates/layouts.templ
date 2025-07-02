@@ -94,6 +94,23 @@ templ Base(content templ.Component) {
 					}
 				});
 			</script>
+			<script>
+				// Reset search input when leaving the recipe list page
+				document.body.addEventListener('htmx:afterSwap', function(evt) {
+					if (evt.detail.target && evt.detail.target.id === "main-content") {
+						const mainContent = evt.detail.target;
+						const hasRecipeList = mainContent.querySelector('#recipe-list') !== null 
+						if (!hasRecipeList) {
+							const searchBar = document.getElementById('search-bar');
+							if (searchBar) {
+								searchBar.value = '';
+								const clearBtn = document.getElementById('clear-search');
+								if (clearBtn) clearBtn.classList.add('hidden');
+							}
+						}
+					}
+				});
+			</script>
 		</body>
 	</html>
 }

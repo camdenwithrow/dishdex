@@ -109,6 +109,7 @@ templ RecipesList(recipes []models.Recipe) {
 	<div class="mb-4 ml-1">
 		<h2 class="text-xl font-bold">My Recipes</h2>
 	</div>
+	<div id="recipe-list" class="hidden"></div>
 	if len(recipes) == 0 {
 		<div class="text-center py-12">
 			<div class="mb-4 text-border">

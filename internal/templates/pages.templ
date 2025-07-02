@@ -435,3 +435,18 @@ templ EditRecipe(recipe *models.Recipe) {
 		</form>
 	</div>
 }
+
+templ AccountPage(user *models.User) {
+	<div class="max-w-xl mx-auto mt-12 p-8 bg-card rounded-lg shadow-lg">
+		<h1 class="text-3xl font-bold mb-6 text-primary">Account</h1>
+		<div class="mb-4">
+			<label class="block text-sm font-medium text-primary mb-1">Name</label>
+			<div class="px-4 py-2 bg-base rounded border border-border">{ user.Name }</div>
+		</div>
+		<div class="mb-4">
+			<label class="block text-sm font-medium text-primary mb-1">Email</label>
+			<div class="px-4 py-2 bg-base rounded border border-border">{ user.Email }</div>
+		</div>
+		// <div class="mt-8 text-secondary text-sm">More account settings coming soon...</div>
+	</div>
+}

@@ -48,8 +48,17 @@ templ Nav(user *models.User) {
 								<div class="px-4 pt-2 text-sm text-primary font-bold">{ user.Name }</div>
 								<div class="px-4 pb-2 text-xs text-primary">{ user.Email }</div>
 								<hr/>
-								<div class="px-4 py-2 text-sm w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card">
-									<a href="/profile">Account</a>
+								<div class="text-sm w-full text-left text-sm text-primary cursor-pointer hover:bg-card">
+									<a 
+										class="w-full h-full px-4 py-2 block" 
+										hx-get="/account" 
+										hx-target="#main-content" 
+										hx-swap="innerHTML" 
+										hx-push-url="true"
+										hx-on::after-request="document.getElementById('user-menu-dropdown').classList.toggle('hidden')"
+									>
+										Account
+									</a>
 								</div>
 								// <a href="#" class="block px-4 py-2 text-sm text-primary hover:bg-card">Account</a>
 								// <button

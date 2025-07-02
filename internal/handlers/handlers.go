@@ -741,6 +741,15 @@ func (h *Handlers) ImportOneTsp(c echo.Context) error {
 	return h.ListRecipes(c)
 }
 
+func (h *Handlers) AccountPage(c echo.Context) error {
+	user := h.AuthService.GetUser(c)
+	if user == nil {
+		h.logger.Warn("Unauthorized account page access - no user in context")
+		return c.Redirect(http.StatusSeeOther, "/signin")
+	}
+	return defaultRender(c, templates.AccountPage(user), user)
+}
+
 // Helper Functions
 func (h *Handlers) validateRecipeAccess(c echo.Context, recipeID string) (*models.User, error) {
 	user := h.AuthService.GetUser(c)

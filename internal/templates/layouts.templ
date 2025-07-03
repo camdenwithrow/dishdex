@@ -115,32 +115,26 @@ templ Base(content templ.Component) {
 	</html>
 }
 
-templ Default(content templ.Component, user *models.User) {
-	@Base(ContentWithNav(content, user))
+templ PageWrapper(user *models.User, navConfig NavConfig) {
+	<div id="page">
+		@Nav(user, navConfig)
+		@MainContet() {
+			{ children... }
+		}
+	</div>
 }
 
-templ ContentWithNav(content templ.Component, user *models.User) {
-	@Nav(user)
-	<main class="py-8">
-		<div id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-			@content
-		</div>
-	</main>
-}
-
-templ ContentWithoutNav(content templ.Component) {
-	<main class="py-8">
-		<div id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-			@content
-		</div>
-	</main>
-}
-
-templ ContentWithCustomNav(customNav templ.Component, content templ.Component) {
+templ PageWrapperCustomNav(customNav templ.Component) {
 	@customNav
+	@MainContet() {
+		{ children... }
+	}
+}
+
+templ MainContet() {
 	<main class="py-8">
 		<div id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-			@content
+			{ children... }
 		</div>
 	</main>
 }

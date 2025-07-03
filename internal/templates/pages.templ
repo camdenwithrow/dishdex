@@ -10,52 +10,56 @@ import (
 )
 
 templ Home() {
-	<div class="max-w-3xl mx-auto text-center py-8 sm:py-20 px-2 sm:px-12">
-		<div class="flex flex-col items-center mb-8">
-			<h1 class="text-5xl/16 font-extrabold mb-4 text-primary">
-				Your personal digital recipe book
-			</h1>
+	@PageWrapper(nil, NavConfig{}) {
+		<div class="max-w-3xl mx-auto text-center py-8 sm:py-20 px-2 sm:px-12">
+			<div class="flex flex-col items-center mb-8">
+				<h1 class="text-5xl/16 font-extrabold mb-4 text-primary">
+					Your personal digital recipe book
+				</h1>
+			</div>
+			<div class=" text-secondary text-md">
+				<p>Made with ❤️ for my mom, and anyone who loves to cook.</p>
+			</div>
+			<div class="mt-16 flex justify-center">
+				<a
+					hx-get="/signin"
+					hx-target="#page"
+					hx-swap="innerHTML"
+					hx-push-url="true"
+					class="cursor-pointer inline-flex items-center px-8 py-4 bg-accent text-light rounded-lg font-semibold text-lg shadow hover:shadow-lg transition"
+				>
+					Get Started
+				</a>
+			</div>
 		</div>
-		<div class=" text-secondary text-md">
-			<p>Made with ❤️ for my mom, and anyone who loves to cook.</p>
-		</div>
-		<div class="mt-16 flex justify-center">
-			<a
-				hx-get="/signin"
-				hx-target="#main-content"
-				hx-swap="innerHTML"
-				hx-push-url="true"
-				class="cursor-pointer inline-flex items-center px-8 py-4 bg-accent text-light rounded-lg font-semibold text-lg shadow hover:shadow-lg transition"
-			>
-				Get Started
-			</a>
-		</div>
-	</div>
+	}
 }
 
 templ SignInPage() {
-	<div class="max-w-md mx-auto mt-24 p-8 bg-card rounded-lg shadow-lg text-center">
-		<h1 class="text-3xl font-bold mb-6 text-primary">Sign In</h1>
-		<div class="space-y-4">
-			if os.Getenv("ENV") != "production" {
-				<a href="/auth/github" class="inline-flex items-center px-6 py-3 border border-primary text-primary rounded-lg font-medium text-lg hover:shadow-md hover transition w-full justify-center">
-					<svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
-						<path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.262.82-.582 0-.288-.012-1.243-.018-2.252-3.338.726-4.042-1.415-4.042-1.415-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.606-2.665-.304-5.466-1.332-5.466-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.984-.399 3.003-.404 1.018.005 2.046.138 3.004.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.803 5.625-5.475 5.921.43.371.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.218.699.825.58C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z"></path>
+	@PageWrapper(nil, NavConfig{}) {
+		<div class="max-w-md mx-auto mt-24 p-8 bg-card rounded-lg shadow-lg text-center">
+			<h1 class="text-3xl font-bold mb-6 text-primary">Sign In</h1>
+			<div class="space-y-4">
+				if os.Getenv("ENV") != "production" {
+					<a href="/auth/github" class="inline-flex items-center px-6 py-3 border border-primary text-primary rounded-lg font-medium text-lg hover:shadow-md hover transition w-full justify-center">
+						<svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.262.82-.582 0-.288-.012-1.243-.018-2.252-3.338.726-4.042-1.415-4.042-1.415-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.606-2.665-.304-5.466-1.332-5.466-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.984-.399 3.003-.404 1.018.005 2.046.138 3.004.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.803 5.625-5.475 5.921.43.371.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.218.699.825.58C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z"></path>
+						</svg>
+						Sign in with GitHub
+					</a>
+				}
+				<a href="/auth/google" class="inline-flex items-center px-6 py-3 border border-primary text-primary rounded-lg font-medium text-lg hover:shadow-md hover transition w-full justify-center">
+					<svg class="w-6 h-6 mr-3" viewBox="0 0 24 24">
+						<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"></path>
+						<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"></path>
+						<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"></path>
+						<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"></path>
 					</svg>
-					Sign in with GitHub
+					Sign in with Google
 				</a>
-			}
-			<a href="/auth/google" class="inline-flex items-center px-6 py-3 border border-primary text-primary rounded-lg font-medium text-lg hover:shadow-md hover transition w-full justify-center">
-				<svg class="w-6 h-6 mr-3" viewBox="0 0 24 24">
-					<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"></path>
-					<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"></path>
-					<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"></path>
-					<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"></path>
-				</svg>
-				Sign in with Google
-			</a>
+			</div>
 		</div>
-	</div>
+	}
 }
 
 func CompleteProfileForm() templ.Component {
@@ -67,146 +71,151 @@ func CompleteProfileFormWithError(errorMsg string) templ.Component {
 }
 
 templ CompleteProfileFormWithValues(name, email, errorMsg string) {
-	<div class="max-w-md mx-auto mt-24 p-8 bg-card rounded-lg shadow-lg text-center">
-		<h1 class="text-3xl font-bold mb-6 text-primary">We need a lil more info</h1>
-		<p class="mb-6 text-secondary">Please add your name and email to finish setting up your account.</p>
-		if errorMsg != "" {
-			<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
-				{ errorMsg }
-			</div>
-		}
-		<form action="/profile/complete" method="POST" class="space-y-6">
-			<div class="mb-3">
-				<label for="name" class="text-left block text-sm font-medium text-primary mb-1">Name</label>
-				<input
-					type="text"
-					id="name"
-					name="name"
-					required
-					value={ name }
-					class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary"
-					placeholder="Enter your name"
-				/>
-			</div>
-			<div class="mb-3">
-				<label for="email" class="text-left block text-sm font-medium text-primary mb-1">Email Address</label>
-				<input
-					type="email"
-					id="email"
-					name="email"
-					required
-					value={ email }
-					class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary"
-					placeholder="Enter your email"
-				/>
-			</div>
-			<button type="submit" class="w-full cursor-pointer bg-accent text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200">Continue</button>
-		</form>
-	</div>
-}
-
-templ RecipesList(recipes []models.Recipe) {
-	<div class="mb-4 ml-1">
-		<h2 class="text-xl font-bold">My Recipes</h2>
-	</div>
-	<div id="recipe-list" class="hidden"></div>
-	if len(recipes) == 0 {
-		<div class="text-center py-12">
-			<div class="mb-4 text-border">
-				<svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-					></path>
-				</svg>
-			</div>
-			<p class="mb-4 text-secondary">No recipes found.</p>
-			<div class="flex flex-col sm:flex-row gap-4 justify-center">
-				<a
-					hx-get="/recipes/new"
-					hx-target="#main-content"
-					hx-swap="innerHTML"
-					hx-push-url="true"
-					class="px-6 py-2 font-medium cursor-pointer bg-accent text-light rounded-lg hover:bg-primary/90 transition-colors"
-				>
-					Add Recipe
-				</a>
-			</div>
-		</div>
-	} else {
-		<div class="grid gap-3 md:grid-cols-3 lg:grid-cols-4" id="recipes-grid">
-			for _, recipe := range recipes {
-				@RecipeCard(&recipe)
+	@PageWrapperCustomNav(SignOutOnlyNav()) {
+		<div class="max-w-md mx-auto mt-24 p-8 bg-card rounded-lg shadow-lg text-center">
+			<h1 class="text-3xl font-bold mb-6 text-primary">We need a lil more info</h1>
+			<p class="mb-6 text-secondary">Please add your name and email to finish setting up your account.</p>
+			if errorMsg != "" {
+				<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
+					{ errorMsg }
+				</div>
 			}
+			<form action="/profile/complete" method="POST" class="space-y-6">
+				<div class="mb-3">
+					<label for="name" class="text-left block text-sm font-medium text-primary mb-1">Name</label>
+					<input
+						type="text"
+						id="name"
+						name="name"
+						required
+						value={ name }
+						class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary"
+						placeholder="Enter your name"
+					/>
+				</div>
+				<div class="mb-3">
+					<label for="email" class="text-left block text-sm font-medium text-primary mb-1">Email Address</label>
+					<input
+						type="email"
+						id="email"
+						name="email"
+						required
+						value={ email }
+						class="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-primary placeholder-secondary"
+						placeholder="Enter your email"
+					/>
+				</div>
+				<button type="submit" class="w-full cursor-pointer bg-accent text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200">Continue</button>
+			</form>
 		</div>
 	}
 }
 
-templ Recipe(recipe *models.Recipe) {
-	<div class="max-w-4xl mx-auto">
-		<!-- Header -->
-		<div class="mb-8">
-			<div class="flex items-center justify-between mb-4">
-				<a
-					hx-get="/recipes"
-					hx-target="#main-content"
-					hx-swap="innerHTML"
-					class="inline-flex items-center text-primary hover:text-primary/80 transition-colors cursor-pointer"
-					hx-push-url="true"
-				>
-					<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+templ RecipesList(user *models.User, recipes []models.Recipe) {
+	@PageWrapper(user, NavConfig{Search: true, AddRecipeButton: true, ProfileAvatar: true}) {
+		<div class="mb-4 ml-1">
+			<h2 class="text-xl font-bold">My Recipes</h2>
+		</div>
+		<div id="recipe-list" class="hidden"></div>
+		if len(recipes) == 0 {
+			<div class="text-center py-12">
+				<div class="mb-4 text-border">
+					<svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+						></path>
 					</svg>
-					Back to Recipes
-				</a>
-				<div class="flex gap-2">
+				</div>
+				<p class="mb-4 text-secondary">No recipes found.</p>
+				<div class="flex flex-col sm:flex-row gap-4 justify-center">
 					<a
-						hx-get={ templ.SafeURL("/recipes/" + recipe.ID + "/edit") }
-						hx-target="#main-content"
+						hx-get="/recipes/new"
+						hx-target="#page"
 						hx-swap="innerHTML"
-						class="cursor-pointer inline-flex items-center px-4 py-2 text-primary rounded-lg hover:text-accent transition-colors"
+						hx-push-url="true"
+						class="px-6 py-2 font-medium cursor-pointer bg-accent text-light rounded-lg hover:bg-primary/90 transition-colors"
 					>
-						<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-							></path>
-						</svg>
-						Edit
+						Add Recipe
 					</a>
-					<button
-						hx-delete={ "/recipes/" + recipe.ID }
-						hx-target="#main-content"
-						hx-swap="innerHTML"
-						hx-confirm="Are you sure you want to delete this recipe?"
-						class="px-4 py-2 text-primary rounded-lg cursor-pointer hover:bg-red-700 hover:text-light transition-colors"
-					>
-						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-							></path>
-						</svg>
-					</button>
 				</div>
 			</div>
-			<h1 class="text-4xl font-bold text-primary mb-2">{ recipe.Title }</h1>
-			if recipe.OriginalURL != "" {
-				<div class="py-2">
-					<span>Originally from: </span>
+		} else {
+			<div class="grid gap-3 md:grid-cols-3 lg:grid-cols-4" id="recipes-grid">
+				for _, recipe := range recipes {
+					@RecipeCard(&recipe)
+				}
+			</div>
+		}
+	}
+}
+
+templ Recipe(user *models.User, recipe *models.Recipe) {
+	@PageWrapper(user, NavConfig{true, true, true}) {
+		<div class="max-w-4xl mx-auto">
+			<!-- Header -->
+			<div class="mb-8">
+				<div class="flex items-center justify-between mb-4">
 					<a
-						href={ templ.URL(recipe.OriginalURL) }
-						class="text-accent cursor-pointer hover:text-secondary transition-colors "
-						target="_blank"
-						rel="noopener noreferrer"
+						hx-get="/recipes"
+						hx-target="#page"
+						hx-swap="innerHTML"
+						class="inline-flex items-center text-primary hover:text-primary/80 transition-colors cursor-pointer"
+						hx-push-url="true"
 					>
-						{ 
+						<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+						</svg>
+						Back to Recipes
+					</a>
+					<div class="flex gap-2">
+						<a
+							hx-get={ templ.SafeURL("/recipes/" + recipe.ID + "/edit") }
+							hx-target="#page"
+							hx-swap="innerHTML"
+							class="cursor-pointer inline-flex items-center px-4 py-2 text-primary rounded-lg hover:text-accent transition-colors"
+						>
+							<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+								></path>
+							</svg>
+							Edit
+						</a>
+						<button
+							hx-delete={ "/recipes/" + recipe.ID }
+							hx-target="#page"
+							hx-swap="innerHTML"
+							hx-confirm="Are you sure you want to delete this recipe?"
+							class="px-4 py-2 text-primary rounded-lg cursor-pointer hover:bg-red-700 hover:text-light transition-colors"
+						>
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+								></path>
+							</svg>
+						</button>
+					</div>
+				</div>
+				<h1 class="text-4xl font-bold text-primary mb-2">{ recipe.Title }</h1>
+				if recipe.OriginalURL != "" {
+					<div class="py-2">
+						<span>Originally from: </span>
+						<a
+							href={ templ.URL(recipe.OriginalURL) }
+							class="text-accent cursor-pointer hover:text-secondary transition-colors "
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							{ 
 						func() string {
 							u, err := url.Parse(recipe.OriginalURL)
 							if err != nil {
@@ -214,96 +223,96 @@ templ Recipe(recipe *models.Recipe) {
 							}
                             return u.Host
 						}() }
-					</a>
-				</div>
-			}
-			<p class="text-xl text-secondary mb-4">{ recipe.Description }</p>
-			if recipe.CookTime != "" {
-				<div class="flex items-center text-accent">
-					<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-						></path>
-					</svg>
-					<span class="font-medium">{ recipe.CookTime }</span>
-				</div>
-			}
-			if recipe.Tags != "" {
-				<div class="flex items-center text-accent mt-2">
-					<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-						></path>
-					</svg>
-					<span class="font-medium">{ recipe.Tags }</span>
-				</div>
-			}
-		</div>
-		<!-- Recipe Content -->
-		<div class="grid grid-cols-1 lg:grid-cols-6 gap-6">
-			<!-- Ingredients -->
-			<div class="lg:col-span-2 bg-card rounded-lg p-6 shadow-xs">
-				<h2 class="text-2xl font-semibold text-primary mb-4 flex items-center">
-					<svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-						></path>
-					</svg>
-					Ingredients
-				</h2>
-				<div class="space-y-2">
-					for _, ingredient := range strings.Split(recipe.Ingredients, "\n") {
-						if strings.TrimSpace(ingredient) != "" {
-							<div class="flex items-start">
-								<div class="w-2 h-2 bg-primary rounded-full mt-2 mr-3 flex-shrink-0"></div>
-								<p class="text-primary">{ ingredient }</p>
-							</div>
-						}
-					}
-				</div>
+						</a>
+					</div>
+				}
+				<p class="text-xl text-secondary mb-4">{ recipe.Description }</p>
+				if recipe.CookTime != "" {
+					<div class="flex items-center text-accent">
+						<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+							></path>
+						</svg>
+						<span class="font-medium">{ recipe.CookTime }</span>
+					</div>
+				}
+				if recipe.Tags != "" {
+					<div class="flex items-center text-accent mt-2">
+						<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+							></path>
+						</svg>
+						<span class="font-medium">{ recipe.Tags }</span>
+					</div>
+				}
 			</div>
-			<!-- Instructions -->
-			<div class="lg:col-span-4 bg-card rounded-lg p-6 shadow-xs">
-				<h2 class="text-2xl font-semibold text-primary mb-4 flex items-center">
-					<svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-						></path>
-					</svg>
-					Instructions
-				</h2>
-				<div class="space-y-4">
-					for i, instruction := range strings.Split(recipe.Instructions, "\n") {
-						if strings.TrimSpace(instruction) != "" {
-							<div class="flex items-start">
-								<div
-									class="w-6 h-6 pb-0.5 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium mr-3 flex-shrink-0"
-								>
-									{ i + 1 }
+			<!-- Recipe Content -->
+			<div class="grid grid-cols-1 lg:grid-cols-6 gap-6">
+				<!-- Ingredients -->
+				<div class="lg:col-span-2 bg-card rounded-lg p-6 shadow-xs">
+					<h2 class="text-2xl font-semibold text-primary mb-4 flex items-center">
+						<svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+							></path>
+						</svg>
+						Ingredients
+					</h2>
+					<div class="space-y-2">
+						for _, ingredient := range strings.Split(recipe.Ingredients, "\n") {
+							if strings.TrimSpace(ingredient) != "" {
+								<div class="flex items-start">
+									<div class="w-2 h-2 bg-primary rounded-full mt-2 mr-3 flex-shrink-0"></div>
+									<p class="text-primary">{ ingredient }</p>
 								</div>
-								<p class="text-primary">{ instruction }</p>
-							</div>
+							}
 						}
-					}
+					</div>
+				</div>
+				<!-- Instructions -->
+				<div class="lg:col-span-4 bg-card rounded-lg p-6 shadow-xs">
+					<h2 class="text-2xl font-semibold text-primary mb-4 flex items-center">
+						<svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+							></path>
+						</svg>
+						Instructions
+					</h2>
+					<div class="space-y-4">
+						for i, instruction := range strings.Split(recipe.Instructions, "\n") {
+							if strings.TrimSpace(instruction) != "" {
+								<div class="flex items-start">
+									<div
+										class="w-6 h-6 pb-0.5 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium mr-3 flex-shrink-0"
+									>
+										{ i + 1 }
+									</div>
+									<p class="text-primary">{ instruction }</p>
+								</div>
+							}
+						}
+					</div>
 				</div>
 			</div>
-		</div>
-		<!-- Footer -->
-		<div class="mt-8 pt-6 border-t border-border">
-			<p class="text-sm text-secondary text-center">
-				Created on { 
+			<!-- Footer -->
+			<div class="mt-8 pt-6 border-t border-border">
+				<p class="text-sm text-secondary text-center">
+					Created on { 
 			func() string {
 			parsed, err := time.Parse("2006-01-02T15:04:05Z", recipe.CreatedAt)
 			if err != nil {
@@ -312,141 +321,150 @@ templ Recipe(recipe *models.Recipe) {
 			}
 			return parsed.Format("Jan 2, 2006")
 			}() }
-			</p>
+				</p>
+			</div>
 		</div>
-	</div>
+	}
 }
 
-templ AddRecipe() {
-	@InstructionSteps()
-	<div class="max-w-2xl mx-auto">
-		<div class="flex justify-between mt-4 mb-6">
-			<div>
-				<h1 class="text-3xl font-bold text-primary mb-2">Add New Recipe</h1>
+templ AddRecipe(user *models.User) {
+	@PageWrapper(user, NavConfig{Search: false, AddRecipeButton: false, ProfileAvatar: true}) {
+		@InstructionSteps()
+		<div class="max-w-2xl mx-auto">
+			<div class="flex justify-between mt-4 mb-6">
+				<div>
+					<h1 class="text-3xl font-bold text-primary mb-2">Add New Recipe</h1>
+				</div>
+				<div>
+					<button
+						type="button"
+						class="pr-4 pt-4 cursor-pointer text-primary underline hover:text-accent transition-colors duration-200 focus:outline-none"
+						hx-get="/recipes/new/url"
+						hx-target="#dialog"
+						hx-swap="outerHTML"
+					>
+						Import from url
+					</button>
+				</div>
 			</div>
-			<div>
-				<button
-					type="button"
-					class="pr-4 pt-4 cursor-pointer text-primary underline hover:text-accent transition-colors duration-200 focus:outline-none"
-					hx-get="/recipes/new/url"
-					hx-target="#dialog"
-					hx-swap="outerHTML"
-				>
-					Import from url
-				</button>
-			</div>
+			<form hx-post="/recipes" hx-target="#page" hx-swap="innerHTML" class="space-y-6" hx-push-url="true">
+				@RecipeFormFields("", "", "", "", "", "", "", "")
+				<div class="flex gap-4 pt-3">
+					<a
+						hx-get="/recipes"
+						hx-target="#page"
+						hx-swap="innerHTML"
+						hx-push-url="true"
+						class="flex-1 border border-border cursor-pointer text-primary px-7 py-3 rounded-lg font-medium transition-colors duration-200 text-center hover:bg-card focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
+					>
+						Cancel
+					</a>
+					<button
+						type="submit"
+						class="flex-1 bg-accent cursor-pointer text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+					>
+						Save Recipe
+					</button>
+				</div>
+			</form>
 		</div>
-		<form hx-post="/recipes" hx-target="#main-content" hx-swap="innerHTML" class="space-y-6" hx-push-url="true">
-			@RecipeFormFields("", "", "", "", "", "", "", "")
-			<div class="flex gap-4 pt-3">
-				<a
-					hx-get="/recipes"
-					hx-target="#main-content"
-					hx-swap="innerHTML"
-					hx-push-url="true"
-					class="flex-1 border border-border cursor-pointer text-primary px-7 py-3 rounded-lg font-medium transition-colors duration-200 text-center hover:bg-card focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
-				>
-					Cancel
-				</a>
-				<button
-					type="submit"
-					class="flex-1 bg-accent cursor-pointer text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-				>
-					Save Recipe
-				</button>
-			</div>
-		</form>
-	</div>
+	}
 }
 
-templ AddRecipeFromValues(recipe *models.Recipe) {
-	@InstructionSteps()
-	<div class="max-w-2xl mx-auto">
-		<div class="flex justify-between mt-4 mb-6">
-			<div>
-				<h1 class="text-3xl font-bold text-primary mb-2">Add New Recipe</h1>
+templ AddRecipeFromValues(user *models.User, recipe *models.Recipe) {
+	@PageWrapper(user, NavConfig{Search: false, AddRecipeButton: false, ProfileAvatar: true}) {
+		@InstructionSteps()
+		<div class="max-w-2xl mx-auto">
+			<div class="flex justify-between mt-4 mb-6">
+				<div>
+					<h1 class="text-3xl font-bold text-primary mb-2">Add New Recipe</h1>
+				</div>
+				<div>
+					<button
+						type="button"
+						class="pr-4 pt-4 cursor-pointer text-primary underline hover:text-accent transition-colors duration-200 focus:outline-none"
+						hx-get="/recipes/new/url"
+						hx-target="#dialog"
+						hx-swap="outerHTML"
+					>
+						Import from url
+					</button>
+				</div>
 			</div>
-			<div>
-				<button
-					type="button"
-					class="pr-4 pt-4 cursor-pointer text-primary underline hover:text-accent transition-colors duration-200 focus:outline-none"
-					hx-get="/recipes/new/url"
-					hx-target="#dialog"
-					hx-swap="outerHTML"
-				>
-					Import from url
-				</button>
-			</div>
+			<form hx-post="/recipes" hx-target="#page" hx-swap="innerHTML" class="space-y-6" hx-push-url="true">
+				@RecipeFormFields(recipe.Title, recipe.Description, recipe.CookTime, recipe.Servings, recipe.Ingredients, recipe.Instructions, recipe.PhotoURL, recipe.Tags)
+				<div class="flex gap-4 pt-3">
+					<a
+						hx-get="/recipes"
+						hx-target="#page"
+						hx-swap="innerHTML"
+						hx-push-url="true"
+						class="flex-1 border border-border cursor-pointer text-primary px-7 py-3 rounded-lg font-medium transition-colors duration-200 text-center hover:bg-card focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
+					>
+						Cancel
+					</a>
+					<button
+						type="submit"
+						class="flex-1 bg-accent cursor-pointer text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+					>
+						Save Recipe
+					</button>
+				</div>
+			</form>
 		</div>
-		<form hx-post="/recipes" hx-target="#main-content" hx-swap="innerHTML" class="space-y-6" hx-push-url="true">
-			@RecipeFormFields(recipe.Title, recipe.Description, recipe.CookTime, recipe.Servings, recipe.Ingredients, recipe.Instructions, recipe.PhotoURL, recipe.Tags)
-			<div class="flex gap-4 pt-3">
-				<a
-					hx-get="/recipes"
-					hx-target="#main-content"
-					hx-swap="innerHTML"
-					hx-push-url="true"
-					class="flex-1 border border-border cursor-pointer text-primary px-7 py-3 rounded-lg font-medium transition-colors duration-200 text-center hover:bg-card focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
-				>
-					Cancel
-				</a>
-				<button
-					type="submit"
-					class="flex-1 bg-accent cursor-pointer text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-				>
-					Save Recipe
-				</button>
-			</div>
-		</form>
-	</div>
+	}
 }
 
-templ EditRecipe(recipe *models.Recipe) {
-	@InstructionSteps()
-	<div class="max-w-2xl mx-auto">
-		<div class="mt-4 mb-6">
-			<h1 class="text-3xl font-bold text-primary mb-2">Edit Recipe</h1>
-			<p class="text-secondary">Update your recipe details below</p>
-		</div>
-		<form
-			action={ "/recipes/" + recipe.ID }
-			method="POST"
-			hx-put={ "/recipes/" + recipe.ID }
-			hx-target="#main-content"
-			hx-swap="innerHTML"
-			class="space-y-6"
-		>
-			<input type="hidden" name="_method" value="PUT"/>
-			@RecipeFormFields(recipe.Title, recipe.Description, recipe.CookTime, recipe.Servings, recipe.Ingredients, recipe.Instructions, recipe.PhotoURL, recipe.Tags)
-			<div class="flex gap-4 pt-3">
-				<a
-					href={ "/recipes/" + recipe.ID }
-					class="flex-1 border border-border cursor-pointer text-primary px-7 py-3 rounded-lg font-medium transition-colors duration-200 text-center hover:bg-card focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
-				>
-					Cancel
-				</a>
-				<button
-					type="submit"
-					class="flex-1 bg-accent cursor-pointer text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-				>
-					Update Recipe
-				</button>
+templ EditRecipe(user *models.User, recipe *models.Recipe) {
+	@PageWrapper(user, NavConfig{Search: false, AddRecipeButton: false, ProfileAvatar: true}) {
+		@InstructionSteps()
+		<div class="max-w-2xl mx-auto">
+			<div class="mt-4 mb-6">
+				<h1 class="text-3xl font-bold text-primary mb-2">Edit Recipe</h1>
+				<p class="text-secondary">Update your recipe details below</p>
 			</div>
-		</form>
-	</div>
+			<form
+				action={ "/recipes/" + recipe.ID }
+				method="POST"
+				hx-put={ "/recipes/" + recipe.ID }
+				hx-target="#page"
+				hx-swap="innerHTML"
+				class="space-y-6"
+			>
+				<input type="hidden" name="_method" value="PUT"/>
+				@RecipeFormFields(recipe.Title, recipe.Description, recipe.CookTime, recipe.Servings, recipe.Ingredients, recipe.Instructions, recipe.PhotoURL, recipe.Tags)
+				<div class="flex gap-4 pt-3">
+					<a
+						href={ "/recipes/" + recipe.ID }
+						class="flex-1 border border-border cursor-pointer text-primary px-7 py-3 rounded-lg font-medium transition-colors duration-200 text-center hover:bg-card focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
+					>
+						Cancel
+					</a>
+					<button
+						type="submit"
+						class="flex-1 bg-accent cursor-pointer text-light px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+					>
+						Update Recipe
+					</button>
+				</div>
+			</form>
+		</div>
+	}
 }
 
 templ AccountPage(user *models.User) {
-	<div class="max-w-xl mx-auto mt-12 p-8 bg-card rounded-lg shadow-lg">
-		<h1 class="text-3xl font-bold mb-6 text-primary">Account</h1>
-		<div class="mb-4">
-			<label class="block text-sm font-medium text-primary mb-1">Name</label>
-			<div class="px-4 py-2 bg-base rounded border border-border">{ user.Name }</div>
+	@PageWrapper(user, NavConfig{Search: false, AddRecipeButton: false, ProfileAvatar: true}) {
+		<div class="max-w-xl mx-auto mt-12 p-8 bg-card rounded-lg shadow-lg">
+			<h1 class="text-3xl font-bold mb-6 text-primary">Account</h1>
+			<div class="mb-4">
+				<label class="block text-sm font-medium text-primary mb-1">Name</label>
+				<div class="px-4 py-2 bg-base rounded border border-border">{ user.Name }</div>
+			</div>
+			<div class="mb-4">
+				<label class="block text-sm font-medium text-primary mb-1">Email</label>
+				<div class="px-4 py-2 bg-base rounded border border-border">{ user.Email }</div>
+			</div>
+			// <div class="mt-8 text-secondary text-sm">More account settings coming soon...</div>
 		</div>
-		<div class="mb-4">
-			<label class="block text-sm font-medium text-primary mb-1">Email</label>
-			<div class="px-4 py-2 bg-base rounded border border-border">{ user.Email }</div>
-		</div>
-		// <div class="mt-8 text-secondary text-sm">More account settings coming soon...</div>
-	</div>
+	}
 }

@@ -749,7 +749,6 @@ func (h *Handlers) AccountPage(c echo.Context) error {
 	return renderPage(c, templates.AccountPage(user))
 }
 
-// Grocery List Handlers
 func (h *Handlers) ViewGroceryList(c echo.Context) error {
 	user := auth.GetUserFromContext(c)
 	if user == nil {

@@ -43,18 +43,6 @@ templ Nav(user *models.User, navConfig NavConfig) {
 						if navConfig.ProfileAvatar {
 							@AvatarProfileDropdown(user)
 						}
-						//<div class="w-full text-sm text-primary text-left cursor-pointer hover:bg-card">
-						// <button onclick="closeUserDropdown();showGrocerySidebar()"
-						class="cursor-pointer text-left w-full h-full px-4 py-2 block">
-						// Grocery List
-						// </button>
-						//</div>
-						// <a href="#" class="block px-4 py-2 text-sm text-primary hover:bg-card">Account</a>
-						// <button // type="button" // id="open-onetsp-modal-dropdown" //
-						class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card" //
-						hx-get="/recipes/onetsp/login" // hx-target="#dialog" // hx-swap="outerHTML" / />
-						// Import from 1tsp
-						// </button>
 					</div>
 				} else {
 					<div class="h-10 flex justify-center items-center text-center text-primary font-medium rounded-lg">
@@ -721,23 +709,31 @@ templ AvatarProfileDropdown(user *models.User) {
 					Account
 				</a>
 			</div>
-			//<div class="w-full text-sm text-primary text-left cursor-pointer hover:bg-card">
-			// <button onclick="closeUserDropdown();showGrocerySidebar()"
-			class="cursor-pointer text-left w-full h-full px-4 py-2 block">
-			// Grocery List
-			// </button>
-			//</div>
-			// <a href="#" class="block px-4 py-2 text-sm text-primary hover:bg-card">Account</a>
-			// <button // type="button" // id="open-onetsp-modal-dropdown" //
-			class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card" //
-			hx-get="/recipes/onetsp/login" // hx-target="#dialog" // hx-swap="outerHTML" / />
-			// Import from 1tsp
+			// <div class="w-full text-sm text-primary text-left cursor-pointer hover:bg-card">
+			// 	<button
+			// 		onclick="closeUserDropdown();showGrocerySidebar()"
+			// 		class="cursor-pointer text-left w-full h-full px-4 py-2 block"
+			// 	>
+			// 		Grocery List
+			// 	</button>
+			// </div>
+			// <button
+			// 	type="button"
+			// 	id="open-onetsp-modal-dropdown"
+			// 	class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card"
+			// 	hx-get="/recipes/onetsp/login"
+			// 	hx-target="#dialog"
+			// 	hx-swap="outerHTML"
+			// >
+			// 	Import from 1tsp
 			// </button>
 			<form action="/logout" method="POST">
 				<button
 					type="submit"
 					class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card"
-				>Logout</button>
+				>
+					Logout
+				</button>
 			</form>
 		</div>
 	</div>
@@ -870,11 +866,6 @@ templ OpenGroceryListButton() {
 			class="h-12 w-12 p-2 flex items-center justify-center rounded-full bg-base  border-2 border-primary cursor-pointer"
 			title="Open Grocery List"
 		>
-			// <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-			// <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-			d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.35 2.7A2 2 0 007.48 19h8.98a2 2 0 001.83-1.3L21 13M7 13V6h13">
-			// </path>
-			// </svg>
 			<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 				<g id="SVGRepo_bgCarrier" stroke-width="0"></g>
 				<g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>

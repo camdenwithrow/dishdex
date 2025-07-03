@@ -785,7 +785,7 @@ templ GroceryListSidebar() {
 				id="grocery-add-form"
 				hx-swap="none"
 				hx-post="/grocery-list/item"
-				hx-on::after-request="document.getElementById('grocery-input').value = ''; document.body.dispatchEvent(new CustomEvent('groceryListChanged'))"
+				hx-on::after-request="afterAddGroceryListItem()"
 			>
 				<div class="flex gap-2">
 					<input
@@ -798,21 +798,27 @@ templ GroceryListSidebar() {
 					/>
 					<button
 						type="submit"
-						class="bg-accent text-light px-4 py-2 rounded font-medium hover:bg-primary transition-colors"
+						class="cursor-pointer bg-accent text-light px-4 py-2 rounded font-medium hover:bg-primary transition-colors"
 					>Add</button>
 				</div>
 			</form>
 		</div>
 	</div>
 	<script>
-	// Show sidebar function (can be called from anywhere)
-	function showGrocerySidebar() {
-		document.getElementById('grocery-sidebar').classList.remove('hidden');
-	}
-	function closeGrocerySidebar() {
-		document.getElementById('grocery-sidebar').classList.add('hidden')
-	}
-</script>
+		function showGrocerySidebar() {
+			document.getElementById('grocery-sidebar').classList.remove('hidden');
+		}
+		function closeGrocerySidebar() {
+			document.getElementById('grocery-sidebar').classList.add('hidden');
+		}
+		function updateGroceryList() {
+			document.body.dispatchEvent(new CustomEvent('groceryListChanged'));
+		}
+		function afterAddGroceryListItem() {
+			document.getElementById('grocery-input').value = '';
+			updateGroceryList();
+		}
+	</script>
 }
 
 templ GroceryListContent(list models.GroceryList) {
@@ -833,7 +839,7 @@ templ GroceryListItem(item models.GroceryListItem) {
 			hx-put={ "/grocery-list/item/" + item.ID + "/toggle" }
 			hx-target="#grocery-list-content"
 			hx-swap="none"
-			hx-on::after-request="document.body.dispatchEvent(new CustomEvent('groceryListChanged'))"
+			hx-on::after-request="updateGroceryList()"
 			class="inline"
 		>
 			<button
@@ -865,7 +871,7 @@ templ GroceryListItem(item models.GroceryListItem) {
 			hx-delete={ "/grocery-list/item/" + item.ID }
 			hx-target="#grocery-list-content"
 			hx-swap="none"
-			hx-on::after-request="document.body.dispatchEvent(new CustomEvent('groceryListChanged'))"
+			hx-on::after-request="updateGroceryList()"
 			class="inline"
 		>
 			<button type="submit" class="cursor-pointer text-red-500 hover:text-red-700 ml-2" aria-label="Remove">&times;</button>

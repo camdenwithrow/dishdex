@@ -42,20 +42,16 @@ func IsHtmxReq(c echo.Context) bool {
 	return c.Request().Header.Get("HX-Request") == "true"
 }
 
-func render(c echo.Context, page templ.Component, htmxComponent templ.Component) error {
+func renderPage(c echo.Context, page templ.Component) error {
 	component := page
-	if isHtmxReq(c) && htmxComponent != nil {
-		component = htmxComponent
+	if !isHtmxReq(c) {
+		component = templates.Base(page)
 	}
+	return renderComponent(c, component)
+}
+
+func renderComponent(c echo.Context, component templ.Component) error {
 	return component.Render(c.Request().Context(), c.Response().Writer)
-}
-
-func defaultRender(c echo.Context, t templ.Component, user *models.User) error {
-	return render(c, templates.Default(t, user), t)
-}
-
-func renderSingle(c echo.Context, t templ.Component) error {
-	return render(c, t, nil)
 }
 
 func (h *Handlers) Health(c echo.Context) error {
@@ -76,7 +72,7 @@ func (h *Handlers) Health(c echo.Context) error {
 
 func (h *Handlers) Home(c echo.Context) error {
 	if loggedIn, err := h.AuthService.LoggedIn(c); err != nil || !loggedIn {
-		return defaultRender(c, templates.Home(), nil)
+		return renderPage(c, templates.Home())
 	}
 	return c.Redirect(http.StatusSeeOther, "/recipes")
 }
@@ -127,7 +123,7 @@ func (h *Handlers) Logout(c echo.Context) error {
 
 func (h *Handlers) SignIn(c echo.Context) error {
 	if loggedIn, err := h.AuthService.LoggedIn(c); err != nil || !loggedIn {
-		return defaultRender(c, templates.SignInPage(), nil)
+		return renderPage(c, templates.SignInPage())
 	}
 	return c.Redirect(http.StatusSeeOther, "/recipes")
 }
@@ -140,7 +136,7 @@ func (h *Handlers) CompleteProfileForm(c echo.Context) error {
 	}
 
 	h.logger.Debug("Profile completion form accessed", "user_id", user.ID)
-	return renderSingle(c, templates.Base(templates.ContentWithCustomNav(templates.SignOutOnlyNav(), templates.CompleteProfileFormWithValues(user.Name, user.Email, ""))))
+	return renderPage(c, templates.CompleteProfileFormWithValues(user.Name, user.Email, ""))
 }
 
 func (h *Handlers) SubmitCompleteProfileForm(c echo.Context) error {
@@ -153,9 +149,14 @@ func (h *Handlers) SubmitCompleteProfileForm(c echo.Context) error {
 	name := c.FormValue("name")
 	email := c.FormValue("email")
 
-	if name == "" || email == "" {
+	if name == "" {
 		h.logger.Warn("Profile completion failed - name and email required", "user_id", user.ID)
-		return renderSingle(c, templates.Base(templates.ContentWithCustomNav(templates.SignOutOnlyNav(), templates.CompleteProfileFormWithValues(user.Name, user.Email, ""))))
+		return renderPage(c, templates.CompleteProfileFormWithValues(user.Name, user.Email, "Name Required"))
+	}
+
+	if email == "" {
+		h.logger.Warn("Profile completion failed - name and email required", "user_id", user.ID)
+		return renderPage(c, templates.CompleteProfileFormWithValues(user.Name, user.Email, "Email Required"))
 	}
 
 	_, err := h.db.Exec(`UPDATE users SET name=?, email=? WHERE id=?`, name, email, user.ID)
@@ -214,7 +215,7 @@ func (h *Handlers) ListRecipes(c echo.Context) error {
 
 	h.logger.Debug("Recipes fetched", "user_id", user.ID, "count", len(recipes))
 
-	return defaultRender(c, templates.RecipesList(recipes), user)
+	return renderPage(c, templates.RecipesList(user, recipes))
 }
 
 func (h *Handlers) CreateRecipe(c echo.Context) error {
@@ -251,12 +252,12 @@ func (h *Handlers) CreateRecipe(c echo.Context) error {
 
 func (h *Handlers) AddRecipeForm(c echo.Context) error {
 	user := auth.GetUserFromContext(c)
-	return defaultRender(c, templates.AddRecipe(), user)
+	return renderPage(c, templates.AddRecipe(user))
 }
 
 func (h *Handlers) AddRecipeFormFromValues(c echo.Context, recipe *models.Recipe) error {
 	user := auth.GetUserFromContext(c)
-	return defaultRender(c, templates.AddRecipeFromValues(recipe), user)
+	return renderPage(c, templates.AddRecipeFromValues(user, recipe))
 }
 
 func (h *Handlers) SearchRecipes(c echo.Context) error {
@@ -320,7 +321,7 @@ func (h *Handlers) SearchRecipes(c echo.Context) error {
 		recipes = append(recipes, rankedRecipe.recipe)
 	}
 
-	return defaultRender(c, templates.RecipesList(recipes), user)
+	return renderPage(c, templates.RecipesList(user, recipes))
 }
 
 func (h *Handlers) GetRecipe(c echo.Context) error {
@@ -362,7 +363,7 @@ func (h *Handlers) GetRecipe(c echo.Context) error {
 		r.CreatedAt = ""
 	}
 
-	return defaultRender(c, templates.Recipe(&r), user)
+	return renderPage(c, templates.Recipe(user, &r))
 }
 
 func (h *Handlers) EditRecipeForm(c echo.Context) error {
@@ -403,7 +404,7 @@ func (h *Handlers) EditRecipeForm(c echo.Context) error {
 		r.CreatedAt = ""
 	}
 
-	return defaultRender(c, templates.EditRecipe(&r), user)
+	return renderPage(c, templates.EditRecipe(user, &r))
 }
 
 func (h *Handlers) UpdateRecipe(c echo.Context) error {
@@ -467,8 +468,7 @@ func (h *Handlers) DeleteRecipe(c echo.Context) error {
 }
 
 func (h *Handlers) ImportRecipeFromURLForm(c echo.Context) error {
-	user := auth.GetUserFromContext(c)
-	return defaultRender(c, templates.ImportFromUrlDialog(), user)
+	return renderComponent(c, templates.ImportFromUrlDialog())
 }
 
 func (h *Handlers) ImportRecipeFromURLFormSubmit(c echo.Context) error {
@@ -493,8 +493,7 @@ func (h *Handlers) LoginOneTspForm(c echo.Context) error {
 	user := auth.GetUserFromContext(c)
 	h.logger.Info("OneTsp login initiated", "user_id", user.ID)
 
-	return defaultRender(c, templates.OneTspLoginDialog(), user)
-
+	return renderComponent(c, templates.OneTspLoginDialog())
 }
 
 func (h *Handlers) LoginOneTspFormSubmit(c echo.Context) error {
@@ -558,7 +557,7 @@ func (h *Handlers) LoginOneTspFormSubmit(c echo.Context) error {
 		h.logger.Error("Failed to unmarshal response", "error", err)
 		return c.String(http.StatusInternalServerError, "Failed to unmarshal response")
 	}
-	return defaultRender(c, templates.OneTspImportDialog(response.Token), user)
+	return renderComponent(c, templates.OneTspImportDialog(response.Token))
 }
 
 func (h *Handlers) ImportOneTsp(c echo.Context) error {
@@ -567,7 +566,7 @@ func (h *Handlers) ImportOneTsp(c echo.Context) error {
 
 	if token == "" {
 		h.logger.Error("OneTsp import failed - no token provided", "user_id", user.ID)
-		return renderSingle(c, templates.ErrorMessage("Import failed: No token provided"))
+		return renderPage(c, templates.ErrorMessage("Import failed: No token provided"))
 	}
 
 	h.logger.Info("OneTsp import initiated", "user_id", user.ID)
@@ -583,7 +582,7 @@ func (h *Handlers) ImportOneTsp(c echo.Context) error {
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
 		h.logger.Error("Failed to marshal request body", "error", err, "user_id", user.ID)
-		return renderSingle(c, templates.ErrorMessage("Import failed: Invalid request"))
+		return renderPage(c, templates.ErrorMessage("Import failed: Invalid request"))
 	}
 
 	// Create HTTP client with timeout
@@ -593,7 +592,7 @@ func (h *Handlers) ImportOneTsp(c echo.Context) error {
 	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		h.logger.Error("Failed to create request", "error", err, "user_id", user.ID)
-		return renderSingle(c, templates.ErrorMessage("Import failed: Could not create request"))
+		return renderPage(c, templates.ErrorMessage("Import failed: Could not create request"))
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -602,7 +601,7 @@ func (h *Handlers) ImportOneTsp(c echo.Context) error {
 	resp, err := client.Do(req)
 	if err != nil {
 		h.logger.Error("Failed to make request to OneTsp API", "error", err, "user_id", user.ID, "api_url", apiURL)
-		return renderSingle(c, templates.ErrorMessage("Import failed: Could not connect to OneTsp"))
+		return renderPage(c, templates.ErrorMessage("Import failed: Could not connect to OneTsp"))
 	}
 	defer resp.Body.Close()
 
@@ -611,7 +610,7 @@ func (h *Handlers) ImportOneTsp(c echo.Context) error {
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		h.logger.Error("OneTsp API returned error status", "status", resp.Status, "body", string(bodyBytes), "user_id", user.ID)
-		return renderSingle(c, templates.ErrorMessage("Import failed: OneTsp API returned error"))
+		return renderPage(c, templates.ErrorMessage("Import failed: OneTsp API returned error"))
 	}
 
 	// Parse response
@@ -630,7 +629,7 @@ func (h *Handlers) ImportOneTsp(c echo.Context) error {
 
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		h.logger.Error("Failed to parse OneTsp API response", "error", err, "user_id", user.ID)
-		return renderSingle(c, templates.ErrorMessage("Import failed: Invalid response from OneTsp"))
+		return renderPage(c, templates.ErrorMessage("Import failed: Invalid response from OneTsp"))
 	}
 
 	// Save recipes to database
@@ -747,7 +746,7 @@ func (h *Handlers) AccountPage(c echo.Context) error {
 		h.logger.Warn("Unauthorized account page access - no user in context")
 		return c.Redirect(http.StatusSeeOther, "/signin")
 	}
-	return defaultRender(c, templates.AccountPage(user), user)
+	return renderPage(c, templates.AccountPage(user))
 }
 
 // Helper Functions

@@ -749,6 +749,118 @@ func (h *Handlers) AccountPage(c echo.Context) error {
 	return renderPage(c, templates.AccountPage(user))
 }
 
+// Grocery List Handlers
+func (h *Handlers) ViewGroceryList(c echo.Context) error {
+	user := auth.GetUserFromContext(c)
+	if user == nil {
+		return c.String(http.StatusUnauthorized, "Unauthorized")
+	}
+
+	// Get or create grocery list for user
+	var listID string
+	err := h.db.QueryRow(`SELECT id FROM grocery_lists WHERE user_id = ?`, user.ID).Scan(&listID)
+	if err == sql.ErrNoRows {
+		// Create new grocery list
+		listID = uuid.New().String()
+		_, err := h.db.Exec(`INSERT INTO grocery_lists (id, user_id) VALUES (?, ?)`, listID, user.ID)
+		if err != nil {
+			return c.String(http.StatusInternalServerError, "Failed to create grocery list")
+		}
+	} else if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to fetch grocery list")
+	}
+
+	// Fetch items
+	rows, err := h.db.Query(`SELECT id, name, checked, created_at FROM grocery_list_items WHERE grocery_list_id = ? ORDER BY created_at`, listID)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to fetch grocery list items")
+	}
+	defer rows.Close()
+	items := []models.GroceryListItem{}
+	for rows.Next() {
+		var item models.GroceryListItem
+		var createdAt sql.NullTime
+		if err := rows.Scan(&item.ID, &item.Name, &item.Checked, &createdAt); err != nil {
+			return c.String(http.StatusInternalServerError, "Failed to parse grocery list item")
+		}
+		item.GroceryListID = listID
+		if createdAt.Valid {
+			item.CreatedAt = createdAt.Time.Format("2006-01-02 15:04:05")
+		}
+		items = append(items, item)
+	}
+
+	list := models.GroceryList{
+		ID:     listID,
+		UserID: user.ID,
+		Items:  items,
+	}
+	return renderComponent(c, templates.GroceryListContent(list))
+}
+
+func (h *Handlers) AddGroceryListItem(c echo.Context) error {
+	user := auth.GetUserFromContext(c)
+	if user == nil {
+		return c.String(http.StatusUnauthorized, "Unauthorized")
+	}
+	name := c.FormValue("name")
+	if name == "" {
+		return c.String(http.StatusBadRequest, "Item name required")
+	}
+	// Get or create grocery list for user
+	var listID string
+	err := h.db.QueryRow(`SELECT id FROM grocery_lists WHERE user_id = ?`, user.ID).Scan(&listID)
+	if err == sql.ErrNoRows {
+		listID = uuid.New().String()
+		_, err := h.db.Exec(`INSERT INTO grocery_lists (id, user_id) VALUES (?, ?)`, listID, user.ID)
+		if err != nil {
+			return c.String(http.StatusInternalServerError, "Failed to create grocery list")
+		}
+	} else if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to fetch grocery list")
+	}
+	itemID := uuid.New().String()
+	_, err = h.db.Exec(`INSERT INTO grocery_list_items (id, grocery_list_id, name) VALUES (?, ?, ?)`, itemID, listID, name)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to add item")
+	}
+	return c.JSON(http.StatusOK, map[string]string{"id": itemID, "name": name})
+}
+
+func (h *Handlers) RemoveGroceryListItem(c echo.Context) error {
+	user := auth.GetUserFromContext(c)
+	if user == nil {
+		return c.String(http.StatusUnauthorized, "Unauthorized")
+	}
+	itemID := c.Param("id")
+	if itemID == "" {
+		return c.String(http.StatusBadRequest, "Item ID required")
+	}
+	// Only allow removing items from user's own list
+	_, err := h.db.Exec(`DELETE FROM grocery_list_items WHERE id = ? AND grocery_list_id IN (SELECT id FROM grocery_lists WHERE user_id = ?)`, itemID, user.ID)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to remove item")
+	}
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handlers) ToggleGroceryListItem(c echo.Context) error {
+	user := auth.GetUserFromContext(c)
+	if user == nil {
+		return c.String(http.StatusUnauthorized, "Unauthorized")
+	}
+	itemID := c.Param("id")
+	if itemID == "" {
+		return c.String(http.StatusBadRequest, "Item ID required")
+	}
+	// Only allow toggling items from user's own list
+	_, err := h.db.Exec(`UPDATE grocery_list_items SET checked = NOT checked WHERE id = ? AND grocery_list_id IN (SELECT id FROM grocery_lists WHERE user_id = ?)`, itemID, user.ID)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to toggle item")
+	}
+	return c.NoContent(http.StatusOK)
+}
+
 // Helper Functions
 func (h *Handlers) validateRecipeAccess(c echo.Context, recipeID string) (*models.User, error) {
 	user := h.AuthService.GetUser(c)

@@ -60,4 +60,10 @@ func SetupRoutes(e *echo.Echo, h *handlers.Handlers, a *auth.AuthService, log *l
 	recipes.GET("/onetsp/login", h.LoginOneTspForm)
 	recipes.POST("/onetsp/login", h.LoginOneTspFormSubmit)
 	recipes.POST("/onetsp/import", h.ImportOneTsp)
+
+	grocery := e.Group("/grocery-list", a.ProtectedRouteMiddleware)
+	grocery.GET("", h.ViewGroceryList)
+	grocery.POST("/item", h.AddGroceryListItem)
+	grocery.DELETE("/item/:id", h.RemoveGroceryListItem)
+	grocery.PUT("/item/:id/toggle", h.ToggleGroceryListItem)
 }

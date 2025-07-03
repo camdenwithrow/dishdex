@@ -30,3 +30,20 @@ type Session struct {
 	ExpiresAt time.Time `json:"expires_at"`
 	IsActive  bool      `json:"is_active"`
 }
+
+// GroceryList represents a user's grocery list
+type GroceryList struct {
+	ID        string            `json:"id"`
+	UserID    string            `json:"user_id"`
+	CreatedAt string            `json:"created_at"`
+	Items     []GroceryListItem `json:"items"`
+}
+
+// GroceryListItem represents an item in a grocery list
+type GroceryListItem struct {
+	ID            string `json:"id"`
+	GroceryListID string `json:"grocery_list_id"`
+	Name          string `json:"name"`
+	Checked       bool   `json:"checked"`
+	CreatedAt     string `json:"created_at"`
+}

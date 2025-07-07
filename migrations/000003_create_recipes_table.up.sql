@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS recipes (
     servings TEXT NULL,
     ingredients TEXT,
     instructions TEXT,
+    tags TEXT NULL,
     photo_url TEXT NULL,
     original_url TEXT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

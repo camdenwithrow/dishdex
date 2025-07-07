@@ -423,6 +423,10 @@ templ ImportFromUrlDialog() {
 }
 
 templ OneTspLoginDialog() {
+	@OneTspLoginDialogWithError("")
+}
+
+templ OneTspLoginDialogWithError(errorMsg string) {
 	<div id="dialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
 		<div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto relative">
 			<style>
@@ -483,7 +487,13 @@ templ OneTspLoginDialog() {
 							placeholder="**********"
 						/>
 					</div>
-					<div id="onetsp-login-error" class="text-red-600 text-sm mb-2"></div>
+					if errorMsg != "" {
+						<div id="onetsp-login-error" class="text-red-600 text-sm mb-2">
+							{ errorMsg }
+						</div>
+					} else {
+						<div id="onetsp-login-error" class="text-red-600 text-sm mb-2"></div>
+					}
 					<button
 						type="submit"
 						id="onetsp-login-btn"
@@ -518,7 +528,7 @@ templ OneTspImportDialog(token string) {
 				</div>
 				<div class="pb-1">
 					<button
-						onclick="closeModal()"
+						onclick="closeModal();htmx.trigger('#import-onetsp-form', 'htmx:abort')"
 						class="cursor-pointer text-3xl text-light hover:text-white focus:outline-none"
 					>
 						&times;
@@ -531,8 +541,9 @@ templ OneTspImportDialog(token string) {
 				hx-target="#page"
 				hx-trigger="load"
 				hx-swap="innerHTML"
-				hx-on::after-request="closeModal()"
+				hx-on::after-request="closeModal();"
 				class="space-y-4"
+				id="import-onetsp-form"
 			>
 				<input type="hidden" name="token" value={ token }/>
 				<div class="flex flex-col items-center justify-center py-8">
@@ -541,6 +552,7 @@ templ OneTspImportDialog(token string) {
 						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
 					</svg>
 					<span class="text-[#07274A] text-lg font-semibold">Importing from OneTsp...</span>
+					<p class="text-[#07274A] text-md">This might take a couple minutes. Please do not close this window. Thanks for your patience :)</p>
 				</div>
 			</form>
 		</div>
@@ -644,17 +656,19 @@ templ AvatarProfileDropdown(user *models.User) {
 					Account
 				</a>
 			</div>
-			// <a href="#" class="block px-4 py-2 text-sm text-primary hover:bg-card">Account</a>
-			// <button
-			// 	type="button"
-			// 	id="open-onetsp-modal-dropdown"
-			// 	class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card"
-			// 	hx-get="/recipes/onetsp/login"
-			// 	hx-target="#dialog"
-			// 	hx-swap="outerHTML"
-			// >
-			// 	Import from 1tsp
-			// </button>
+			<button
+				type="button"
+				id="open-onetsp-modal-dropdown"
+				class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card"
+				hx-get="/recipes/onetsp/login"
+				hx-target="#dialog"
+				hx-swap="outerHTML"
+			>
+				Import from 1tsp
+			</button>
+			<form action="/logout" method="POST">
+				<button type="submit" class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card">Logout</button>
+			</form>
 			<form action="/logout" method="POST">
 				<button type="submit" class="w-full text-left px-4 py-2 text-sm text-primary cursor-pointer hover:bg-card">Logout</button>
 			</form>

@@ -536,9 +536,14 @@ func (h *Handlers) LoginOneTspFormSubmit(c echo.Context) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusUnauthorized {
+		h.logger.Warn("OneTsp login failed - incorrect credentials", "user_id", user.ID, "email", email)
+		return renderSingle(c, templates.OneTspLoginDialogWithError("Incorrect username or password"))
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		h.logger.Error("Failed to login", "status", resp.StatusCode, "body", resp.Body)
-		return c.String(http.StatusInternalServerError, "Failed to login")
+		return renderSingle(c, templates.OneTspLoginDialogWithError("Login failed. Please try again."))
 	}
 
 	body, err := io.ReadAll(resp.Body)
